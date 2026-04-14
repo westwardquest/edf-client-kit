@@ -10,7 +10,7 @@ To list or fetch tickets you **must** use the **Shell** tool from the **workspac
 npm run edf:tickets
 ```
 
-Same HTTP API as MCP: `GET /api/w/{slug}/tickets`. Reads **`WORKSPACE_SLUG`** and **`DEV_APP_ORIGIN`** from **`edf.config`**, and the Supabase token from **`.cursor/mcp.json`** (or **`EDF_SUPABASE_ACCESS_TOKEN`**).
+Same HTTP API as MCP: `GET /api/w/{slug}/tickets`. Reads **`WORKSPACE_SLUG`** and **`DEV_APP_ORIGIN`** from **`edf.config`**, and **`EDF_PERSONAL_ACCESS_TOKEN`** if set, else the Supabase token from **`.cursor/mcp.json`** (or **`EDF_SUPABASE_ACCESS_TOKEN`**).
 
 Other commands:
 
@@ -21,9 +21,9 @@ npm run edf:tickets:lookup -- "search text"
 
 Or run **`node vendor/edf-client-kit/mcp/tickets-cli.mjs list`** directly.
 
-**Do not** tell the user you “cannot” pull live tickets because MCP is unavailable — **run the commands above** and report the output. If the command errors (401, missing token), say so and suggest **`npm run quickstart:customer -- --client-root <this-repo>`** from the framework repo to refresh **`.cursor/mcp.json`**.
+**Do not** tell the user you “cannot” pull live tickets because MCP is unavailable — **run the commands above** and report the output. If the command errors (401, missing token), suggest creating a **personal access token** in the app (**Settings → Personal access tokens**) and setting **`EDF_PERSONAL_ACCESS_TOKEN`** in **`.cursor/mcp.json`**, or **`npm run quickstart:customer -- --client-root <this-repo>`** from the framework repo to refresh Supabase JWT fields.
 
-**Do not** paste contents of **`.cursor/mcp.json`** into chat (it contains a bearer token).
+**Do not** paste contents of **`.cursor/mcp.json`** into chat (it contains bearer token material).
 
 ---
 
@@ -31,7 +31,7 @@ Or run **`node vendor/edf-client-kit/mcp/tickets-cli.mjs list`** directly.
 
 If **`list_tickets`** / **`get_ticket`** appear in your tool list, you may use those instead of the CLI. **Do not** call `list_mcp_resources` or similar unless your environment documents it — prefer the CLI when unsure.
 
-If ticket calls return **401**, use MCP tool **`refresh_supabase_session`** first (uses the refresh token in MCP env from quickstart). If that tool is missing or fails, use **`npm run edf:tickets`** or re-run **`quickstart --client-root`**.
+If ticket calls return **401**, when using Supabase JWTs (not PAT) the MCP auto-refreshes; you can also call **`refresh_supabase_session`**. If **`EDF_PERSONAL_ACCESS_TOKEN`** is set, refresh is unnecessary. If refresh fails, re-run **`quickstart --client-root`** or issue a new PAT in the app.
 
 ---
 

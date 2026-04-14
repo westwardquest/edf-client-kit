@@ -52,11 +52,12 @@ See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/re
 | Variable | Purpose |
 | -------- | ------- |
 | `EDF_BASE_URL` | Same as `DEV_APP_ORIGIN` in `edf.config` (no trailing slash). |
-| `EDF_SUPABASE_ACCESS_TOKEN` | Supabase user access JWT (short-lived). |
-| `EDF_SUPABASE_REFRESH_TOKEN` | Refresh token — used by MCP tool **`refresh_supabase_session`** when the access JWT expires. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (for refresh). |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for refresh). |
-| `EDF_MCP_CONFIG_PATH` | Absolute path to `.cursor/mcp.json` — refresh tool writes new tokens here. |
+| `EDF_PERSONAL_ACCESS_TOKEN` | Optional. Long-lived token from app **Settings → Personal access tokens**; if set, MCP uses it and skips Supabase JWT refresh. |
+| `EDF_SUPABASE_ACCESS_TOKEN` | Supabase user access JWT (short-lived; used when PAT is unset). |
+| `EDF_SUPABASE_REFRESH_TOKEN` | Refresh token — MCP refreshes access JWT automatically before API calls; **`refresh_supabase_session`** forces a refresh. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (for refresh when not using PAT). |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for refresh when not using PAT). |
+| `EDF_MCP_CONFIG_PATH` | Absolute path to `.cursor/mcp.json` — refreshed JWTs are written here. |
 
 ## Updating the kit
 

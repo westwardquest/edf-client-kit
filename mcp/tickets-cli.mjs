@@ -8,7 +8,8 @@
  *   node vendor/edf-client-kit/mcp/tickets-cli.mjs get <ticketUuid>
  *   node vendor/edf-client-kit/mcp/tickets-cli.mjs lookup <query>
  *
- * Auth: env EDF_SUPABASE_ACCESS_TOKEN, or token from .cursor/mcp.json (edf-tickets server).
+ * Auth: prefer EDF_PERSONAL_ACCESS_TOKEN (long-lived), else EDF_SUPABASE_ACCESS_TOKEN,
+ * or values from .cursor/mcp.json (edf-tickets server).
  * Base URL: env EDF_BASE_URL, or edf.config DEV_APP_ORIGIN.
  * Slug: edf.config WORKSPACE_SLUG.
  */
@@ -50,21 +51,36 @@ function findWorkspaceRoot(start = process.cwd()) {
 }
 
 function loadToken(workspaceRoot) {
+  const patEnv = process.env.EDF_PERSONAL_ACCESS_TOKEN?.trim();
+  if (patEnv) {
+    return patEnv;
+  }
+  const mcpPath = path.join(workspaceRoot, ".cursor", "mcp.json");
+  if (fs.existsSync(mcpPath)) {
+    try {
+      const j = JSON.parse(fs.readFileSync(mcpPath, "utf8"));
+      const pat = j?.mcpServers?.["edf-tickets"]?.env?.EDF_PERSONAL_ACCESS_TOKEN;
+      if (typeof pat === "string" && pat.trim()) {
+        return pat.trim();
+      }
+    } catch {
+      /* fall through */
+    }
+  }
   const env = process.env.EDF_SUPABASE_ACCESS_TOKEN?.trim();
   if (env) {
     return env;
   }
-  const mcpPath = path.join(workspaceRoot, ".cursor", "mcp.json");
-  if (!fs.existsSync(mcpPath)) {
-    return null;
+  if (fs.existsSync(mcpPath)) {
+    try {
+      const j = JSON.parse(fs.readFileSync(mcpPath, "utf8"));
+      const t = j?.mcpServers?.["edf-tickets"]?.env?.EDF_SUPABASE_ACCESS_TOKEN;
+      return typeof t === "string" ? t.trim() : null;
+    } catch {
+      return null;
+    }
   }
-  try {
-    const j = JSON.parse(fs.readFileSync(mcpPath, "utf8"));
-    const t = j?.mcpServers?.["edf-tickets"]?.env?.EDF_SUPABASE_ACCESS_TOKEN;
-    return typeof t === "string" ? t.trim() : null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 function baseUrl(cfg) {

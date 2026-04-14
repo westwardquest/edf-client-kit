@@ -8,8 +8,7 @@
  *   node vendor/edf-client-kit/mcp/tickets-cli.mjs get <ticketUuid>
  *   node vendor/edf-client-kit/mcp/tickets-cli.mjs lookup <query>
  *
- * Auth: prefer EDF_PERSONAL_ACCESS_TOKEN (long-lived), else EDF_SUPABASE_ACCESS_TOKEN,
- * or values from .cursor/mcp.json (edf-tickets server).
+ * Auth: EDF_PERSONAL_ACCESS_TOKEN (env or .cursor/mcp.json edf-tickets env).
  * Base URL: env EDF_BASE_URL, or edf.config DEV_APP_ORIGIN.
  * Slug: edf.config WORKSPACE_SLUG.
  */
@@ -64,20 +63,7 @@ function loadToken(workspaceRoot) {
         return pat.trim();
       }
     } catch {
-      /* fall through */
-    }
-  }
-  const env = process.env.EDF_SUPABASE_ACCESS_TOKEN?.trim();
-  if (env) {
-    return env;
-  }
-  if (fs.existsSync(mcpPath)) {
-    try {
-      const j = JSON.parse(fs.readFileSync(mcpPath, "utf8"));
-      const t = j?.mcpServers?.["edf-tickets"]?.env?.EDF_SUPABASE_ACCESS_TOKEN;
-      return typeof t === "string" ? t.trim() : null;
-    } catch {
-      return null;
+      /* ignore */
     }
   }
   return null;
@@ -101,7 +87,7 @@ async function apiGet(workspaceRoot, cfg, pathname) {
   const token = loadToken(workspaceRoot);
   if (!token) {
     throw new Error(
-      "No Supabase token: set EDF_SUPABASE_ACCESS_TOKEN or run quickstart so .cursor/mcp.json exists.",
+      "No personal access token: set EDF_PERSONAL_ACCESS_TOKEN (edf_pat_…) in the environment or in .cursor/mcp.json under mcpServers.edf-tickets.env. Create one in the app: Settings → Personal access tokens.",
     );
   }
   const root = baseUrl(cfg);

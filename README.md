@@ -51,19 +51,16 @@ See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/re
 
 | Variable | Purpose |
 | -------- | ------- |
-| `EDF_BASE_URL` | Same as `DEV_APP_ORIGIN` in `edf.config` (no trailing slash). |
-| `EDF_PERSONAL_ACCESS_TOKEN` | Optional. Long-lived token from app **Settings → Personal access tokens**; if set, MCP uses it and skips Supabase JWT refresh. |
-| `EDF_SUPABASE_ACCESS_TOKEN` | Supabase user access JWT (short-lived; used when PAT is unset). |
-| `EDF_SUPABASE_REFRESH_TOKEN` | Refresh token — MCP refreshes access JWT automatically before API calls; **`refresh_supabase_session`** forces a refresh. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (for refresh when not using PAT). |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (for refresh when not using PAT). |
-| `EDF_MCP_CONFIG_PATH` | Absolute path to `.cursor/mcp.json` — refreshed JWTs are written here. |
+| `EDF_BASE_URL` | Same as `DEV_APP_ORIGIN` in `edf.config` (no trailing slash). Must match the deployment where the PAT was created. |
+| `EDF_PERSONAL_ACCESS_TOKEN` | **Required.** Full `edf_pat_…` from the app **Settings → Personal access tokens**. The MCP sends this as `Authorization: Bearer …` on every request (no `EDF_SUPABASE_ACCESS_TOKEN`). |
 
 ## Updating the kit
 
 - **From a client workspace:** `vendor/edf-client-kit` is **gitignored** in the workspace repo but is still a real **git clone**. Pull new commits and reinstall deps from the **ExtremeDevelopmentFramework** repo:
-  - **`npm run refresh:vendor-kit -- <path-to-your-workspace-root>`**
-  - or **`node scripts/quickstarts/refresh-vendor-kit.mjs`** (run with cwd = workspace, or pass the workspace path as the first argument).
+  - **`npm run refresh:vendor-kit -- <path-to-your-workspace-root> --sync-from-framework <path-to-framework-repo-root>`** — runs `git pull` in the vendor clone, then copies **`packages/edf-client-kit/mcp`** + **`package.json`** from your monorepo (the published kit repo often lags; this keeps MCP on PAT auth with the framework).
+  - Or set **`EDF_FRAMEWORK_ROOT`** to the framework repo root and run **`npm run refresh:vendor-kit -- <workspace-root>`** (same sync step).
+  - Without `--sync-from-framework`: only **`git pull`** + **`npm install`** in **`vendor/edf-client-kit`** (same as before).
+  - Shorthand: **`node scripts/quickstarts/refresh-vendor-kit.mjs`** with cwd = workspace (or pass workspace as first argument).
 - **Recreate from scratch:** re-run **`npm run quickstart:customer`** (or clone again via **`scripts/quickstarts/setup-edf-kit.mjs`**) if you prefer a clean tree.
 
 Using a **submodule** for `vendor/edf-client-kit` is possible but not the default: the workspace repo intentionally does not commit vendored kit history; **`git pull`** inside **`vendor/edf-client-kit`** is the simple path.

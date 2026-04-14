@@ -4,10 +4,13 @@
   "private": true,
   "description": "EDF client workspace kit: ticket MCP, Cursor templates, and launch scripts (portable; copy or clone into customer repos).",
   "scripts": {
-    "mcp:tickets": "tsx mcp/src/index.ts"
+    "mcp:tickets": "tsx mcp/src/index.ts",
+    "tickets:list": "node mcp/tickets-cli.mjs list",
+    "tickets:get": "node mcp/tickets-cli.mjs get"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "@supabase/supabase-js": "^2.103.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

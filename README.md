@@ -1,6 +1,6 @@
 # EDF client kit
 
-Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/`, reference **`templates/`**, **`AGENTS.md`**, and this README. This package is developed inside the Extreme Development Framework monorepo at **`packages/edf-client-kit`** and **published as its own Git repository** for `git clone` (see **Publishing** below). Customer workspaces get **`vendor/edf-client-kit`** via **`npm run quickstart:customer`** (from the framework repo) or by running **`scripts/quickstarts/setup-edf-kit.mjs`** in a framework checkout.
+Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/`, reference **`templates/`**, **`AGENTS.md`**, and this README. This package is developed inside the Extreme Development Framework monorepo at **`packages/edf-client-kit`** and **published as its own Git repository** for `git clone` / **`git submodule add`** (see **Publishing** below). Customer workspaces get **`vendor/edf-client-kit`** via **`npm run quickstart:customer`** (from the framework repo; submodule when the workspace is a git repo) or by running **`scripts/quickstarts/setup-edf-kit.mjs`** in a framework checkout.
 
 Workspace-only automation (webhook helper, quickstart, optional launch helper) lives in the framework repo under **`scripts/quickstarts/`** — see **[`docs/repository_layout.md`](../../docs/repository_layout.md)**.
 
@@ -23,16 +23,17 @@ Quickstart defaults **`EDF_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwa
 - **`templates/`** — `edf.config.example`, `workspace-users.json.example`, knowledge-repo template (used by quickstart from monorepo paths, not copied into trimmed `vendor/`).
 - **`AGENTS.md`** — prompts for Cursor to initialise ticketing + link the **knowledge** repo only.
 
-## Runtime-only workspace copy
+## Workspace copy under `vendor/edf-client-kit`
 
-`npm run quickstart:customer` keeps only runtime MCP files under `vendor/edf-client-kit`:
+- **With a workspace git root (default):** quickstart adds **`vendor/edf-client-kit`** as a **git submodule** — the full published tree is visible and pullable in Cursor’s Source Control.
+- **With `--no-git-init`:** quickstart uses a **shallow clone** and **trims** to runtime MCP files only:
 
-- `package.json`
-- `mcp/`
-- `.git` (so you can `git pull` / **`npm run refresh:vendor-kit`** in that clone)
-- installed dependencies (`node_modules/`)
+  - `package.json`
+  - `mcp/`
+  - `.git` (so you can `git pull` / **`npm run refresh:vendor-kit`** in that clone)
+  - installed dependencies (`node_modules/`)
 
-Templates and monorepo scripts are intentionally omitted from generated customer workspaces to reduce noise and prevent misleading local-only workflows.
+  Templates and monorepo scripts are omitted from that trimmed tree to reduce noise.
 
 ## Naming (fixed)
 
@@ -56,11 +57,12 @@ See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/re
 
 ## Updating the kit
 
-- **From a client workspace:** `vendor/edf-client-kit` is **gitignored** in the workspace repo but is still a real **git clone**. Pull new commits and reinstall deps from the **ExtremeDevelopmentFramework** repo:
-  - **`npm run refresh:vendor-kit -- <path-to-your-workspace-root> --sync-from-framework <path-to-framework-repo-root>`** — runs `git pull` in the vendor clone, then copies **`packages/edf-client-kit/mcp`** + **`package.json`** from your monorepo (the published kit repo often lags; this keeps MCP on PAT auth with the framework).
+- **From a client workspace (submodule):** `vendor/edf-client-kit` is **tracked** by the workspace repo. Run **`git pull`** inside **`vendor/edf-client-kit`**, or **`git submodule update --remote vendor/edf-client-kit`** from the workspace root, then **`npm install`** there if needed.
+- **Monorepo ahead of published kit:** from the **ExtremeDevelopmentFramework** repo:
+  - **`npm run refresh:vendor-kit -- <path-to-your-workspace-root> --sync-from-framework <path-to-framework-repo-root>`** — runs `git pull` in the vendor tree, then copies **`packages/edf-client-kit/mcp`** + **`package.json`** from your monorepo.
   - Or set **`EDF_FRAMEWORK_ROOT`** to the framework repo root and run **`npm run refresh:vendor-kit -- <workspace-root>`** (same sync step).
-  - Without `--sync-from-framework`: only **`git pull`** + **`npm install`** in **`vendor/edf-client-kit`** (same as before).
+  - Without `--sync-from-framework`: only **`git pull`** + **`npm install`** in **`vendor/edf-client-kit`**.
   - Shorthand: **`node scripts/quickstarts/refresh-vendor-kit.mjs`** with cwd = workspace (or pass workspace as first argument).
-- **Recreate from scratch:** re-run **`npm run quickstart:customer`** (or clone again via **`scripts/quickstarts/setup-edf-kit.mjs`**) if you prefer a clean tree.
+- **Recreate from scratch:** re-run **`npm run quickstart:customer`** (or **`scripts/quickstarts/setup-edf-kit.mjs`**) if you prefer a clean tree.
 
-Using a **submodule** for `vendor/edf-client-kit` is possible but not the default: the workspace repo intentionally does not commit vendored kit history; **`git pull`** inside **`vendor/edf-client-kit`** is the simple path.
+**Shallow clone workspaces (`--no-git-init`):** `vendor/` stays gitignored; **`git pull`** inside **`vendor/edf-client-kit`** is still the simple path.

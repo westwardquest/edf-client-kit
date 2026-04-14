@@ -13,7 +13,7 @@ git subtree push -P packages/edf-client-kit origin edf-client-kit-main
 
 Or use **`scripts/setup-edf-kit-remote.md`** at the framework repo root for a one-off `git subtree split` + push.
 
-Consumers set **`EDF_CLIENT_KIT_GIT_URL=https://github.com/<org>/edf-client-kit.git`** in `.env.local` and run **`node scripts/setup-edf-kit.mjs`** from the **workspace** repo (or rely on quickstart auto-clone).
+Quickstart defaults **`EDF_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwardquest/edf-client-kit.git`**. Override in **`.env.local`** if you fork; otherwise run **`node scripts/setup-edf-kit.mjs`** from the **workspace** repo when not using quickstart.
 
 ## Contents
 
@@ -29,9 +29,8 @@ Consumers set **`EDF_CLIENT_KIT_GIT_URL=https://github.com/<org>/edf-client-kit.
 
 ## After scaffold
 
-1. **`EDF_CLIENT_KIT_GIT_URL=… node scripts/setup-edf-kit.mjs`** if quickstart did not auto-clone.
-2. **`node vendor/edf-client-kit/scripts/edf-launch.mjs`** — `npm install` in the kit.
-3. From the **framework** repo: **`npm run quickstart:customer -- --client-root <workspace-repo>`** — bootstrap + **`.cursor/mcp.json`**.
+1. **`node vendor/edf-client-kit/scripts/edf-launch.mjs`** — `npm install` in the kit.
+2. Re-run from the **framework** repo only when needed: **`npm run quickstart:customer -- --client-root <workspace-repo>`** — refresh bootstrap/session + **`.cursor/mcp.json`**.
 
 See the framework **`README.md`** and **`examples/cursor-workspace/README.md`**.
 

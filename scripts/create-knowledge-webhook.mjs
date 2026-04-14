@@ -2,7 +2,7 @@
  * Create a GitHub repo webhook on the *knowledge* repo only (push → EDF).
  * Usage (from workspace repo root): node vendor/edf-client-kit/scripts/create-knowledge-webhook.mjs
  *
- * Requires: GITHUB_TOKEN (repo + admin:repo_hook), edf.config with
+ * Requires: EDF_GITHUB_DEVELOPER_PAT or GITHUB_TOKEN (see framework .env.example), edf.config with
  * DEV_APP_ORIGIN, GITHUB_WEBHOOK_SECRET, KNOWLEDGE_REPO_HTTPS (or GITHUB_OWNER + WORKSPACE_SLUG).
  */
 import * as fs from "node:fs";
@@ -87,10 +87,12 @@ async function main() {
     throw new Error("GITHUB_WEBHOOK_SECRET is required");
   }
 
-  const token = process.env.GITHUB_TOKEN?.trim();
+  const token =
+    process.env.EDF_GITHUB_DEVELOPER_PAT?.trim() ||
+    process.env.GITHUB_TOKEN?.trim();
   if (!token) {
     throw new Error(
-      "GITHUB_TOKEN is required in the environment (PAT or gh auth token with repo + hook admin).",
+      "Set EDF_GITHUB_DEVELOPER_PAT or GITHUB_TOKEN (fine-grained: Webhooks write on the knowledge repo; see framework docs).",
     );
   }
 

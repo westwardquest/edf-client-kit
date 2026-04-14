@@ -45,7 +45,7 @@ function main() {
 Next:
   1. Edit edf.config (Supabase URL/anon key, KNOWLEDGE_REPO_HTTPS, GITHUB_WEBHOOK_SECRET).
   2. Push the two repos to GitHub (workspace + <slug>-knowledge-base).
-  3. Create the knowledge-repo webhook: set GITHUB_TOKEN, then:
+  3. Create the knowledge-repo webhook: set EDF_GITHUB_DEVELOPER_PAT (or GITHUB_TOKEN), then:
        node vendor/edf-client-kit/scripts/create-knowledge-webhook.mjs
   4. From the EDF framework repo: npm run quickstart:customer -- --client-root "${workspaceRoot}"
 `);

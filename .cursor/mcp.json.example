@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "edf-tickets": {
+      "command": "npm",
+      "args": ["run", "mcp:tickets"],
+      "cwd": ".",
+      "env": {
+        "EDF_BASE_URL": "https://extreme-development-framework.vercel.app",
+        "EDF_SUPABASE_ACCESS_TOKEN": ""
+      }
+    }
+  }
+}

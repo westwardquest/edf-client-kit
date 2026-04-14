@@ -1,0 +1,17 @@
+# Copy to edf.config (gitignored). Workspace repo folder name MUST equal WORKSPACE_SLUG.
+# Knowledge repo name is always ${WORKSPACE_SLUG}-knowledge-base (sibling repository).
+
+WORKSPACE_NAME=My workspace
+WORKSPACE_SLUG=my-workspace
+DEV_APP_ORIGIN=https://extreme-development-framework.vercel.app
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+
+# Optional: set so git_repo_url can be built for bootstrap if KNOWLEDGE_REPO_HTTPS is omitted
+GITHUB_OWNER=
+
+# Full HTTPS URL of the knowledge-only GitHub repo (recommended for bootstrap_workspace / MCP)
+KNOWLEDGE_REPO_HTTPS=https://github.com/GITHUB_OWNER/my-workspace-knowledge-base
+
+# Must match Vercel env GITHUB_WEBHOOK_SECRET when creating the GitHub webhook on the *knowledge* repo
+GITHUB_WEBHOOK_SECRET=

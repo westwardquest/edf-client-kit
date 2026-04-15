@@ -106,7 +106,11 @@ function draftTemplate(
   lines.push(`# --- Optional comment (omit entire comment block to skip) ---`);
   if (initial.comment?.body) {
     lines.push(`comment:`);
-    lines.push(`  body: ${YAML.stringify(initial.comment.body).replace(/\n/g, "\n  ")}`);
+    // Literal block (|) avoids YAML folded scalars (>-) merging lines or swallowing keys.
+    lines.push(`  body: |`);
+    for (const line of String(initial.comment.body).split("\n")) {
+      lines.push(`    ${line}`);
+    }
     if (initial.comment.visibility) {
       lines.push(`  visibility: ${initial.comment.visibility}`);
     }

@@ -1,19 +1,25 @@
 # EDF client kit
 
-Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/`, reference **`templates/`**, **`AGENTS.md`**, and this README. This package is developed inside the Extreme Development Framework monorepo at **`packages/edf-client-kit`** and **published as its own Git repository** for `git clone` / **`git submodule add`** (see **Publishing** below). Customer workspaces get **`vendor/edf-client-kit`** via **`npm run quickstart:customer`** (from the framework repo; submodule when the workspace is a git repo) or by running **`scripts/quickstarts/setup-edf-kit.mjs`** in a framework checkout.
+Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/`, reference **`templates/`**, **`AGENTS.md`**, and this README.
+
+**In the Extreme Development Framework monorepo**, this tree is a **git submodule** at **`packages/edf-client-kit`** that tracks **[westwardquest/edf-client-kit](https://github.com/westwardquest/edf-client-kit)** — clone the framework with **`--recurse-submodules`**. Customer workspaces get **`vendor/edf-client-kit`** via **`npm run quickstart:customer`** (submodule when the workspace is a git repo) or **`scripts/quickstarts/setup-edf-kit.mjs`**.
 
 Workspace-only automation (webhook helper, quickstart, optional launch helper) lives in the framework repo under **`scripts/quickstarts/`** — see **[`docs/repository_layout.md`](../../docs/repository_layout.md)**.
 
 ## Publishing (maintainers)
 
-The canonical sources live in **`packages/edf-client-kit`** in the [Extreme Development Framework](https://github.com/) monorepo. Push a subtree to the public kit repo (replace org/repo):
+The **published** repo is **[github.com/westwardquest/edf-client-kit](https://github.com/westwardquest/edf-client-kit)**. Work in **`packages/edf-client-kit`** in the monorepo (that folder is the submodule checkout), commit, and push:
 
 ```bash
-# From monorepo root — see also scripts/setup-edf-kit-remote.md
-git subtree push -P packages/edf-client-kit origin edf-client-kit-main
+cd packages/edf-client-kit
+git push origin main
+
+cd ../..
+git add packages/edf-client-kit
+git commit -m "chore: bump edf-client-kit submodule"
 ```
 
-Or use **`scripts/setup-edf-kit-remote.md`** at the framework repo root for a one-off `git subtree split` + push.
+Full workflow and clone instructions: **[`scripts/setup-edf-kit-remote.md`](../../scripts/setup-edf-kit-remote.md)**.
 
 Quickstart defaults **`EDF_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwardquest/edf-client-kit.git`**. Override in **`.env.local`** if you fork.
 
@@ -30,7 +36,7 @@ Quickstart defaults **`EDF_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwa
 
   - `package.json`
   - `mcp/`
-  - `.git` (so you can `git pull` / **`npm run refresh:vendor-kit`** in that clone)
+  - `.git` (so you can **`git pull`** in that clone)
   - installed dependencies (`node_modules/`)
 
   Templates and monorepo scripts are omitted from that trimmed tree to reduce noise.
@@ -58,11 +64,7 @@ See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/re
 ## Updating the kit
 
 - **From a client workspace (submodule):** `vendor/edf-client-kit` is **tracked** by the workspace repo. Run **`git pull`** inside **`vendor/edf-client-kit`**, or **`git submodule update --remote vendor/edf-client-kit`** from the workspace root, then **`npm install`** there if needed.
-- **Monorepo ahead of published kit:** from the **ExtremeDevelopmentFramework** repo:
-  - **`npm run refresh:vendor-kit -- <path-to-your-workspace-root> --sync-from-framework <path-to-framework-repo-root>`** — runs `git pull` in the vendor tree, then copies **`packages/edf-client-kit/mcp`** + **`package.json`** from your monorepo.
-  - Or set **`EDF_FRAMEWORK_ROOT`** to the framework repo root and run **`npm run refresh:vendor-kit -- <workspace-root>`** (same sync step).
-  - Without `--sync-from-framework`: only **`git pull`** + **`npm install`** in **`vendor/edf-client-kit`**.
-  - Shorthand: **`node scripts/quickstarts/refresh-vendor-kit.mjs`** with cwd = workspace (or pass workspace as first argument).
+- **In the framework monorepo:** **`packages/edf-client-kit`** is the same GitHub repo — **`git pull`** / **`git push`** there (see **Publishing** above). No separate “sync from framework” script.
 - **Recreate from scratch:** re-run **`npm run quickstart:customer`** (or **`scripts/quickstarts/setup-edf-kit.mjs`**) if you prefer a clean tree.
 
 **Shallow clone workspaces (`--no-git-init`):** `vendor/` stays gitignored; **`git pull`** inside **`vendor/edf-client-kit`** is still the simple path.

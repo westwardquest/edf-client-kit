@@ -6,10 +6,12 @@
   "scripts": {
     "mcp:tickets": "tsx mcp/src/index.ts",
     "tickets:list": "node mcp/tickets-cli.mjs list",
-    "tickets:get": "node mcp/tickets-cli.mjs get"
+    "tickets:get": "node mcp/tickets-cli.mjs get",
+    "ticket-draft": "tsx mcp/src/ticket-draft-cli.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
+    "yaml": "^2.8.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {

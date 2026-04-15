@@ -25,7 +25,8 @@ Quickstart defaults **`EDF_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwa
 
 ## Contents
 
-- **`mcp/`** — stdio MCP server (`npm run mcp:tickets`) plus **`mcp/tickets-cli.mjs`** (list/get/lookup/patch via the same HTTP API when MCP is not available in chat). Quickstart adds a workspace **`package.json`** with **`npm run edf:tickets`** (and **`edf:tickets:queue`**, **`edf:ticket:patch`**).
+- **`mcp/`** — stdio MCP server (`npm run mcp:tickets`) plus **`mcp/tickets-cli.mjs`** (list/get/lookup/patch; **draft / apply-draft / reject-draft** for YAML ticket drafts under **`.edf/ticket-drafts/*.ticket_draft`**). Quickstart adds a workspace **`package.json`** with **`npm run edf:tickets`**, **`edf:ticket:draft`**, **`edf:ticket:apply-draft`**, **`edf:ticket:reject-draft`**, etc.
+- **`../edf-tools`** (framework monorepo) — optional **VS Code / Cursor** extension **edf-tools** (Apply / Discard ticket draft commands). Not vendored into customer repos by default; install from a VSIX or open the folder in **Extensions → Install from Location**.
 - **`templates/`** — `edf.config.example`, `workspace-users.json.example`, **`templates/workspace-AGENTS.stub.md`** (copied to the workspace root as **`AGENTS.md`** so the full rules stay in this kit), knowledge-repo template (used by quickstart from monorepo paths, not copied into trimmed `vendor/`).
 - **`AGENTS.md`** — full Cursor/agent rules for tickets, MCP, knowledge **`business/`** vs **`technical/`**, and git/push expectations.
 

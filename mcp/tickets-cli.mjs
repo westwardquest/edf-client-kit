@@ -13,8 +13,11 @@
  * Base URL: env EDF_BASE_URL, or edf.config DEV_APP_ORIGIN.
  * Slug: edf.config WORKSPACE_SLUG.
  */
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { findWorkspaceRoot } from "./workspace-root.mjs";
 
 function parseConfig(raw) {
   const out = {};
@@ -34,20 +37,6 @@ function parseConfig(raw) {
     out[k] = v;
   }
   return out;
-}
-
-function findWorkspaceRoot(start = process.cwd()) {
-  let dir = path.resolve(start);
-  for (;;) {
-    if (fs.existsSync(path.join(dir, "edf.config"))) {
-      return dir;
-    }
-    const parent = path.dirname(dir);
-    if (parent === dir) {
-      return null;
-    }
-    dir = parent;
-  }
 }
 
 function loadToken(workspaceRoot) {
@@ -175,6 +164,21 @@ async function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0] || "list";
 
+  if (cmd === "draft" || cmd === "apply-draft" || cmd === "reject-draft") {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const tsxCli = path.join(__dirname, "node_modules", "tsx", "dist", "cli.mjs");
+    const draftCli = path.join(__dirname, "src", "ticket-draft-cli.ts");
+    if (!fs.existsSync(tsxCli)) {
+      throw new Error(`tsx not found at ${tsxCli} — run npm install in vendor/edf-client-kit.`);
+    }
+    const result = spawnSync(
+      process.execPath,
+      [tsxCli, draftCli, ...argv],
+      { stdio: "inherit", cwd: workspaceRoot, env: process.env },
+    );
+    process.exit(result.status ?? 1);
+  }
+
   if (cmd === "list") {
     const q = new URLSearchParams();
     for (let i = 1; i < argv.length; i++) {
@@ -251,6 +255,9 @@ async function main() {
   node .../tickets-cli.mjs get <ticketUuid>
   node .../tickets-cli.mjs lookup <query>
   node .../tickets-cli.mjs patch <ticketUuid> <patch.json>
+  node .../tickets-cli.mjs draft <ticketUuid> [initial.json]
+  node .../tickets-cli.mjs apply-draft <draft-relative-path> <confirm_token>
+  node .../tickets-cli.mjs reject-draft <draft-relative-path>
 `);
   process.exit(1);
 }

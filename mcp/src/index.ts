@@ -79,9 +79,10 @@ const mcpServer = new McpServer({
   version: "0.1.0",
 });
 
-const strictTicketUpdates =
-  process.env.EDF_MCP_STRICT_UPDATES === "1" ||
-  process.env.EDF_MCP_STRICT_UPDATES === "true";
+/** When set, registers legacy tools `update_ticket` and `add_ticket_comment`. Default is draft-only (`draft_ticket_update` / `apply_ticket_update_draft`). */
+const allowDirectTicketUpdates =
+  process.env.EDF_MCP_ALLOW_DIRECT_UPDATES === "1" ||
+  process.env.EDF_MCP_ALLOW_DIRECT_UPDATES === "true";
 
 mcpServer.registerTool(
   "bootstrap_workspace",
@@ -434,7 +435,7 @@ mcpServer.registerTool(
   },
 );
 
-if (!strictTicketUpdates) {
+if (allowDirectTicketUpdates) {
 mcpServer.registerTool(
   "update_ticket",
   {

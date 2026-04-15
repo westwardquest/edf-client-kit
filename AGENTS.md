@@ -28,14 +28,14 @@ Other paths under **`knowledge/`** default to internal until classified. Prefer 
 ## Tickets — workflow (developers)
 
 1. **Create and check out** a branch whose name includes the **ticket number**, e.g. **`ticket-42`** or **`feature/ticket-42`** (stay consistent within the team). Do this **before** you commit work for that ticket. A conventional commit prefix on whatever branch you happen to be on (e.g. `feat(ticket#42): …` on **`main`**) is **not** a substitute—ticket work belongs on a **dedicated branch**, not only in the message.
-2. After pushing the branch or opening a PR, set the ticket’s **`code_link_url`** in the app (or via **`update_ticket`** MCP / **`PATCH`** API) to the branch or PR URL so work is traceable.
+2. After pushing the branch or opening a PR, set the ticket’s **`code_link_url`** in the app, or put it in a **draft** (`draft_ticket_update` / YAML) and **`apply_ticket_update_draft`**, or use **`npm run edf:ticket:patch`** / **`PATCH`** from automation—so work is traceable.
 3. Use **`list_priority_active_tickets`** (MCP) or **`npm run edf:tickets:queue`** to see the highest-priority **active** queue without listing every ticket.
 
 ---
 
 ## Tickets — updates and comments (YAML draft)
 
-For **agent-driven** ticket changes (fields and/or **customer-facing** comments), use the **draft → review → apply** flow—**not** raw **`update_ticket`** / **`add_ticket_comment`** unless the user explicitly asks for a direct API update.
+The **`edf-tickets` MCP server does not expose** **`update_ticket`** or **`add_ticket_comment`** by default. Agents must use **draft → review → apply** for any ticket field change or comment.
 
 1. **`draft_ticket_update`** — writes **`.edf/ticket-drafts/<slug>-<ticket-id>-<id>.ticket_draft`** (YAML). Optional PATCH fields and an optional **`comment`** block (same shape as the HTTP API).
 2. The user (or you) **edits** the file; humans can **Apply** / **Discard** via the optional **`edf-tools`** VS Code extension (**Command Palette → “EDF: Apply ticket draft”** / **“EDF: Discard ticket draft”**) or run **`apply_ticket_update_draft`** / **`reject_ticket_update_draft`** (MCP) / CLI (see below).
@@ -43,7 +43,7 @@ For **agent-driven** ticket changes (fields and/or **customer-facing** comments)
 
 Ticket comments in the draft should stay **customer-facing**: clear, professional, and **not** overly technical. **Avoid** pasted code, stack traces, and internal file paths unless the customer asked for that detail.
 
-**If the user explicitly wants a direct update** (no file): they must say so; then **`update_ticket`** / **`add_ticket_comment`** are allowed. When **`EDF_MCP_STRICT_UPDATES=1`** is set in the MCP server env, those direct tools are **omitted**—use drafts only.
+**Escape hatch (humans / scripts only):** set **`EDF_MCP_ALLOW_DIRECT_UPDATES=1`** in **`mcp.json`** `env` next to **`edf-tickets`** to register the legacy **`update_ticket`** and **`add_ticket_comment`** tools (e.g. rare automation). Do not enable this just to skip review.
 
 ---
 
@@ -55,7 +55,7 @@ Summarise **ticket updates** and anything else you intend to do on the remote. L
 
 ## Tickets — MCP first (read this first)
 
-**Prefer the `edf-tickets` MCP tools** whenever they appear in your tool list (`list_tickets`, `list_priority_active_tickets`, `get_ticket`, `draft_ticket_update`, `apply_ticket_update_draft`, `reject_ticket_update_draft`, `update_ticket`, `add_ticket_comment`, `search_tickets`, `bootstrap_workspace`). They call the same HTTP API as the app and are the default way to work with tickets in Cursor. Prefer **`draft_ticket_update`** for mutations unless the user asked for direct **`update_ticket`** / **`add_ticket_comment`**.
+**Prefer the `edf-tickets` MCP tools** whenever they appear in your tool list (`list_tickets`, `list_priority_active_tickets`, `get_ticket`, `draft_ticket_update`, `apply_ticket_update_draft`, `reject_ticket_update_draft`, `search_tickets`, `bootstrap_workspace`; plus **`update_ticket`** / **`add_ticket_comment`** only if **`EDF_MCP_ALLOW_DIRECT_UPDATES=1`**). They call the same HTTP API as the app. For **mutations**, use **`draft_ticket_update`** → edit → **`apply_ticket_update_draft`**.
 
 **If MCP tools are not available** (tools not listed, or calls fail after fixing auth), use the **Shell** tool from the **workspace repo root** and run the npm scripts below—the CLI uses the same API and **`edf.config`** / **`.cursor/mcp.json`** token.
 
@@ -83,7 +83,7 @@ Or run **`node vendor/edf-client-kit/mcp/tickets-cli.mjs`** with subcommands `li
 1. **Open the client workspace folder as the Cursor project root** (the folder that contains `.cursor/mcp.json` and `vendor/edf-client-kit`). Opening only a subfolder breaks `${workspaceFolder}` in the MCP config.
 2. **Enable the server in Cursor (required once per machine/workspace):** **Settings → Features → Model Context Protocol** → find **edf-tickets** → **toggle on**. Quickstart and repo files **cannot** enable this for you; Cursor stores the toggle in the IDE, not in `mcp.json`. If ticket tools never appear, this is the first thing to check.
 3. **Config shape:** stdio servers must include **`"type": "stdio"`**. **`args`** must use **`${workspaceFolder}/vendor/edf-client-kit/...`** full paths for **`tsx`** and **`mcp/src/index.ts`** — Cursor resolves bare `node_modules/...` from the workspace root and will fail to find `tsx`. Re-run **`npm run quickstart:customer -- --client-root <path-to-this-workspace>`** from the framework repo if your `.cursor/mcp.json` predates that fix.
-4. **Auth:** **`EDF_PERSONAL_ACCESS_TOKEN`** (full `edf_pat_…`) and **`EDF_BASE_URL`** are **required** in `mcp.json` `env`. After updating the token, restart Cursor or reload MCP.
+4. **Auth:** **`EDF_PERSONAL_ACCESS_TOKEN`** (full `edf_pat_…`) and **`EDF_BASE_URL`** are **required** in `mcp.json` `env`. After updating the token, restart Cursor or reload MCP. Optional: **`EDF_MCP_ALLOW_DIRECT_UPDATES=1`** registers legacy direct PATCH/comment tools (default off).
 
 ### For agents
 
@@ -107,6 +107,6 @@ If the user expects MCP ticket tools but they are missing, **tell them explicitl
 ## Do not
 
 - Commit ticket work only by changing the **commit message** (e.g. `feat(ticket#N):`) while staying on **`main`** / another shared branch—**use a ticket branch** (see **Tickets — workflow**).
-- Apply ticket updates or post comments **without** going through **`draft_ticket_update`** → review → **`apply_ticket_update_draft`** (or explicit user approval to use direct tools).
+- Apply ticket updates or post comments **via MCP** without going through **`draft_ticket_update`** → review → **`apply_ticket_update_draft`** (use the app UI or CLI **`patch`** / **`apply-draft`** if you are not using MCP).
 - Point **`git_repo_url`** at the application repo when it is separate from the knowledge repo (GitHub `push` webhooks would reindex on every code push).
 - Create or edit local membership JSON as if it updates Supabase.

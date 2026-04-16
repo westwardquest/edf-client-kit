@@ -99,7 +99,7 @@ If the user expects MCP ticket tools but they are missing, **tell them explicitl
 
 1. Read **`warpdesk.config`** for `WORKSPACE_NAME`, `WORKSPACE_SLUG`, and `KNOWLEDGE_REPO_HTTPS` (or build `https://github.com/<GITHUB_OWNER>/<WORKSPACE_SLUG>-knowledge-base`).
 2. Use MCP tool **`bootstrap_workspace`** when that tool is available; otherwise direct the user to the app or quickstart for bootstrap.
-3. For ticket lists and updates, **use MCP tools first**; fall back to the **`npm run edf:*`** CLI commands in the previous section when MCP is unavailable.
+3. For ticket lists and updates, **use MCP tools first**; fall back to the **`npm run warpdesk:*`** CLI commands in the previous section when MCP is unavailable.
 4. If the user asks to add/remove members and you have no membership API, direct them to the framework app; do not fake this via local files.
 
 ## Do not

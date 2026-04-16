@@ -11,7 +11,7 @@ import { findWorkspaceRoot } from "../workspace-root.mjs";
 
 export { findWorkspaceRoot };
 
-const DRAFT_SUBDIR = path.join(".edf", "ticket-drafts");
+const DRAFT_SUBDIR = path.join(".warpdesk", "ticket-drafts");
 
 export type TicketDraftDoc = {
   schema_version: number;

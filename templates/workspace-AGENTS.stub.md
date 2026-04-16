@@ -1,4 +1,4 @@
-# EDF workspace — agent entry point
+# WarpDesk workspace — agent entry point
 
 **Primary instructions:** read and follow **[`vendor/warpdesk-client-kit/AGENTS.md`](vendor/warpdesk-client-kit/AGENTS.md)** (ticket CLI, MCP, knowledge layout, and workflow rules).
 

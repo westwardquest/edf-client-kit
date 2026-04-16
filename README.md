@@ -2,13 +2,13 @@
 
 Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/`, reference **`templates/`**, **`AGENTS.md`**, and this README.
 
-**In the WarpDesk framework monorepo**, this tree is a **git submodule** at **`packages/warpdesk-client-kit`** that tracks **[westwardquest/edf-client-kit](https://github.com/westwardquest/edf-client-kit)** — clone the framework with **`--recurse-submodules`**. Customer workspaces get **`vendor/warpdesk-client-kit`** via **`npm run quickstart:customer`** (submodule when the workspace is a git repo) or **`scripts/quickstarts/setup-warpdesk-kit.mjs`** (**`setup-edf-kit.mjs`** forwards to it for legacy callers).
+**In the WarpDesk framework monorepo**, this tree is a **git submodule** at **`packages/warpdesk-client-kit`** (remote URL in **`.gitmodules`** / **`WARPDESK_CLIENT_KIT_GIT_URL`**) — clone the framework with **`--recurse-submodules`**. Customer workspaces get **`vendor/warpdesk-client-kit`** via **`npm run quickstart:customer`** (submodule when the workspace is a git repo) or **`scripts/quickstarts/setup-warpdesk-kit.mjs`**.
 
 Workspace-only automation (webhook helper, quickstart, optional launch helper) lives in the framework repo under **`scripts/quickstarts/`** — see **[`docs/repository_layout.md`](../../docs/repository_layout.md)**.
 
 ## Publishing (maintainers)
 
-The **published** repo is **[github.com/westwardquest/edf-client-kit](https://github.com/westwardquest/edf-client-kit)**. Work in **`packages/warpdesk-client-kit`** in the monorepo (that folder is the submodule checkout), commit, and push:
+The **published** client kit is the Git remote configured for this submodule (see **`WARPDESK_CLIENT_KIT_GIT_URL`**). Work in **`packages/warpdesk-client-kit`** in the monorepo (that folder is the submodule checkout), commit, and push:
 
 ```bash
 cd packages/warpdesk-client-kit
@@ -21,7 +21,7 @@ git commit -m "chore: bump warpdesk-client-kit submodule"
 
 Full workflow and clone instructions: **[`scripts/setup-warpdesk-kit-remote.md`](../../scripts/setup-warpdesk-kit-remote.md)**.
 
-Quickstart defaults **`WARPDESK_CLIENT_KIT_GIT_URL`** to **`https://github.com/westwardquest/edf-client-kit.git`**. Override in **`.env.local`** if you fork.
+Quickstart defaults **`WARPDESK_CLIENT_KIT_GIT_URL`** to the URL in **`.env.example`**. Override in **`.env.local`** if you fork.
 
 ## Contents
 
@@ -60,7 +60,7 @@ See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/re
 | Variable | Purpose |
 | -------- | ------- |
 | `WARPDESK_BASE_URL` | Same as `DEV_APP_ORIGIN` in `warpdesk.config` (no trailing slash). Must match the deployment where the PAT was created. |
-| `WARPDESK_PERSONAL_ACCESS_TOKEN` | **Required.** Full `wds_pat_…` from the app **Settings → Personal access tokens** (legacy `edf_pat_…` accepted). The MCP sends this as `Authorization: Bearer …` on every request — not Supabase session/JWT keys. |
+| `WARPDESK_PERSONAL_ACCESS_TOKEN` | **Required.** Full `wds_pat_…` from the app **Settings → Personal access tokens**. The MCP sends this as `Authorization: Bearer …` on every request — not Supabase session/JWT keys. |
 
 ## Updating the kit
 

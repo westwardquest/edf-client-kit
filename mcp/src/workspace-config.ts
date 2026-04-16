@@ -4,7 +4,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-export function parseEdfConfig(raw: string): Record<string, string> {
+export function parseWarpdeskConfig(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const line of raw.split("\n")) {
     const t = line.trim();
@@ -69,7 +69,7 @@ export function loadWorkspaceConfig(workspaceRoot: string): {
   token: string;
 } {
   const raw = fs.readFileSync(path.join(workspaceRoot, "warpdesk.config"), "utf8");
-  const cfg = parseEdfConfig(raw);
+  const cfg = parseWarpdeskConfig(raw);
   const slug = cfg.WORKSPACE_SLUG?.trim();
   if (!slug) {
     throw new Error("warpdesk.config: WORKSPACE_SLUG is required.");

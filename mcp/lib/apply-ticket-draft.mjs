@@ -19,7 +19,7 @@ const PATCH_KEYS = [
   "deadline",
 ];
 
-function parseEdfConfig(raw) {
+function parseWarpdeskConfig(raw) {
   const out = {};
   for (const line of raw.split("\n")) {
     const t = line.trim();
@@ -75,7 +75,7 @@ function resolveAppBaseUrl(cfg) {
 
 function loadWorkspaceConfig(workspaceRoot) {
   const raw = fs.readFileSync(path.join(workspaceRoot, "warpdesk.config"), "utf8");
-  const cfg = parseEdfConfig(raw);
+  const cfg = parseWarpdeskConfig(raw);
   const slug = cfg.WORKSPACE_SLUG?.trim();
   if (!slug) {
     throw new Error("warpdesk.config: WORKSPACE_SLUG is required.");

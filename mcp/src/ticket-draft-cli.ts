@@ -3,12 +3,7 @@
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
-import {
-  applyTicketUpdateDraft,
-  findWorkspaceRoot,
-  rejectTicketUpdateDraft,
-  writeTicketDraft,
-} from "./ticket-draft";
+import { findWorkspaceRoot, writeTicketDraft } from "./ticket-draft";
 import { loadWorkspaceConfig } from "./workspace-config";
 
 async function main() {
@@ -60,36 +55,8 @@ async function main() {
       ),
     );
     console.error(
-      "\nEdit the file if needed, then:\n" +
-        `  apply-draft ${r.draftRelativePath} ${r.confirm_token}\n` +
-        "Or discard:\n" +
-        `  reject-draft ${r.draftRelativePath}\n`,
+      "\nEdit the file if needed, then open it in the EDF Tools ticket draft editor and use Confirm or Discard (apply/reject are not available via CLI).\n",
     );
-    return;
-  }
-
-  if (cmd === "apply-draft" && argv[1] && argv[2]) {
-    const draftPath = argv[1];
-    const confirmToken = argv[2];
-    const r = await applyTicketUpdateDraft({
-      workspaceRoot,
-      draftPath,
-      confirmToken,
-    });
-    console.log(r.summary);
-    if (!r.ok) {
-      process.exit(1);
-    }
-    return;
-  }
-
-  if (cmd === "reject-draft" && argv[1]) {
-    const draftPath = argv[1];
-    const r = rejectTicketUpdateDraft({ workspaceRoot, draftPath });
-    console.log(r.summary);
-    if (!r.ok) {
-      process.exit(1);
-    }
     return;
   }
 
@@ -100,8 +67,6 @@ async function main() {
 function printUsage() {
   console.error(`Usage:
   npx tsx mcp/src/ticket-draft-cli.ts draft <ticketUuid> [initial.json]
-  npx tsx mcp/src/ticket-draft-cli.ts apply-draft <draft-relative-path> <confirm_token>
-  npx tsx mcp/src/ticket-draft-cli.ts reject-draft <draft-relative-path>
 `);
 }
 

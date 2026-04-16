@@ -1,31 +1,17 @@
 /**
- * Ticket update drafts: YAML on disk under .edf/ticket-drafts/, apply via PATCH + optional POST comment.
+ * Ticket update drafts: YAML on disk under .edf/ticket-drafts/.
+ * Apply/reject (PATCH + optional POST, or delete file) lives in ../lib/apply-ticket-draft.mjs
+ * for the EDF Tools extension and must not be exposed to agents via MCP or draft CLI.
  */
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import YAML from "yaml";
 import { findWorkspaceRoot } from "../workspace-root.mjs";
-import { loadWorkspaceConfig } from "./workspace-config";
 
 export { findWorkspaceRoot };
 
 const DRAFT_SUBDIR = path.join(".edf", "ticket-drafts");
-
-const PATCH_KEYS = [
-  "title",
-  "description",
-  "type",
-  "status",
-  "customer_score",
-  "customer_priority",
-  "assignee_user_id",
-  "code_link_url",
-  "priority_override_reason",
-  "deadline",
-] as const;
-
-export type PatchKey = (typeof PATCH_KEYS)[number];
 
 export type TicketDraftDoc = {
   schema_version: number;
@@ -60,8 +46,8 @@ function draftTemplate(
   initial: Partial<TicketDraftDoc>,
 ): string {
   const lines: string[] = [
-    `# EDF ticket update draft — edit optional fields, then run apply_ticket_update_draft with confirm_token.`,
-    `# Delete this file or use reject_ticket_update_draft to discard.`,
+    `# EDF ticket update draft — edit optional fields, then open this file in the EDF Tools ticket draft editor and use Confirm or Discard.`,
+    `# Do not apply via MCP tools, CLI, or shell; humans confirm in the extension only.`,
     `schema_version: 1`,
     `workspace_slug: ${YAML.stringify(slug).replace(/\n/g, "\n  ")}`,
     `ticket_id: ${ticketId}`,
@@ -147,156 +133,4 @@ export function writeTicketDraft(params: {
     confirm_token: token,
     absolutePath,
   };
-}
-
-function parseDraftFile(absPath: string): TicketDraftDoc {
-  const raw = fs.readFileSync(absPath, "utf8");
-  const doc = YAML.parse(raw) as Record<string, unknown>;
-  if (!doc || typeof doc !== "object") {
-    throw new Error("Invalid draft: expected YAML object");
-  }
-  return doc as unknown as TicketDraftDoc;
-}
-
-function buildPatchBody(doc: TicketDraftDoc): Record<string, unknown> {
-  const body: Record<string, unknown> = {};
-  for (const k of PATCH_KEYS) {
-    if (Object.prototype.hasOwnProperty.call(doc, k)) {
-      body[k] = (doc as Record<string, unknown>)[k];
-    }
-  }
-  return body;
-}
-
-async function apiFetch(
-  baseUrl: string,
-  token: string,
-  method: string,
-  pathname: string,
-  jsonBody?: unknown,
-): Promise<{ ok: boolean; status: number; text: string }> {
-  const url = `${baseUrl}${pathname}`;
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json",
-  };
-  if (jsonBody !== undefined) {
-    headers["Content-Type"] = "application/json";
-  }
-  const res = await fetch(url, {
-    method,
-    headers,
-    body: jsonBody !== undefined ? JSON.stringify(jsonBody) : undefined,
-  });
-  const text = await res.text();
-  return { ok: res.ok, status: res.status, text };
-}
-
-export async function applyTicketUpdateDraft(params: {
-  workspaceRoot: string;
-  draftPath: string;
-  confirmToken: string;
-}): Promise<{ ok: boolean; summary: string }> {
-  const { workspaceRoot, confirmToken } = params;
-  const absDraft = path.isAbsolute(params.draftPath)
-    ? params.draftPath
-    : path.join(workspaceRoot, params.draftPath);
-
-  if (!fs.existsSync(absDraft)) {
-    return { ok: false, summary: `Draft file not found: ${absDraft}` };
-  }
-
-  const doc = parseDraftFile(absDraft);
-  if (doc.schema_version !== 1) {
-    return { ok: false, summary: `Unsupported schema_version: ${doc.schema_version}` };
-  }
-  if (doc.confirm_token !== confirmToken) {
-    return { ok: false, summary: "confirm_token does not match this draft file." };
-  }
-
-  const { slug, baseUrl, token } = loadWorkspaceConfig(workspaceRoot);
-  if (doc.workspace_slug !== slug) {
-    return {
-      ok: false,
-      summary: `Draft workspace_slug (${doc.workspace_slug}) does not match edf.config WORKSPACE_SLUG (${slug}).`,
-    };
-  }
-
-  const ticketId = doc.ticket_id;
-  const uuidRe =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (!uuidRe.test(ticketId)) {
-    return { ok: false, summary: "Invalid ticket_id in draft." };
-  }
-
-  const patchBody = buildPatchBody(doc);
-  const comment = doc.comment;
-  const hasComment =
-    comment &&
-    typeof comment.body === "string" &&
-    comment.body.trim().length > 0;
-
-  if (Object.keys(patchBody).length === 0 && !hasComment) {
-    return {
-      ok: false,
-      summary:
-        "Nothing to apply: add at least one PATCH field or a comment.body in the draft.",
-    };
-  }
-
-  const parts: string[] = [];
-
-  if (Object.keys(patchBody).length > 0) {
-    const pathname = `/api/w/${encodeURIComponent(slug)}/tickets/${encodeURIComponent(ticketId)}`;
-    const r = await apiFetch(baseUrl, token, "PATCH", pathname, patchBody);
-    parts.push(`${r.status} PATCH ${pathname}\n${r.text}`);
-    if (!r.ok) {
-      return { ok: false, summary: parts.join("\n\n") };
-    }
-  }
-
-  if (hasComment) {
-    const pathname = `/api/w/${encodeURIComponent(slug)}/tickets/${encodeURIComponent(ticketId)}/comments`;
-    const commentPayload: Record<string, unknown> = {
-      body: String(comment!.body).trim(),
-    };
-    if (comment!.visibility === "public" || comment!.visibility === "internal") {
-      commentPayload.visibility = comment!.visibility;
-    }
-    if (
-      comment!.parent_comment_id &&
-      uuidRe.test(comment!.parent_comment_id)
-    ) {
-      commentPayload.parent_comment_id = comment!.parent_comment_id;
-    }
-    const r = await apiFetch(baseUrl, token, "POST", pathname, commentPayload);
-    parts.push(`${r.status} POST ${pathname}\n${r.text}`);
-    if (!r.ok) {
-      return { ok: false, summary: parts.join("\n\n") };
-    }
-  }
-
-  try {
-    fs.unlinkSync(absDraft);
-  } catch (e) {
-    parts.push(
-      `Warning: could not delete draft file: ${e instanceof Error ? e.message : String(e)}`,
-    );
-  }
-
-  return { ok: true, summary: parts.join("\n\n") };
-}
-
-export function rejectTicketUpdateDraft(params: {
-  workspaceRoot: string;
-  draftPath: string;
-}): { ok: boolean; summary: string } {
-  const absDraft = path.isAbsolute(params.draftPath)
-    ? params.draftPath
-    : path.join(params.workspaceRoot, params.draftPath);
-  if (!fs.existsSync(absDraft)) {
-    return { ok: false, summary: `Draft file not found: ${absDraft}` };
-  }
-  fs.unlinkSync(absDraft);
-  return { ok: true, summary: `Discarded draft: ${absDraft}` };
 }

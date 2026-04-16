@@ -13,7 +13,7 @@ For **any** ticket change (comment, status, title, description, assignee, code l
 
 1. Prefer MCP **`draft_ticket_update`** (writes **`.edf/ticket-drafts/*.ticket_draft`**), or the same flow via **`npm run edf:ticket:draft`** / **`node vendor/edf-client-kit/mcp/tickets-cli.mjs draft`** from the workspace root.
 2. The user reviews the YAML (or asks you to edit it).
-3. Apply with MCP **`apply_ticket_update_draft`**, **`npm run edf:ticket:apply-draft`**, or the **edf-tools** extension (**EDF: Apply ticket draft**). Discard with **`reject_ticket_update_draft`** or **EDF: Discard ticket draft**.
+3. A human **applies** or **discards** using the **edf-tools** custom editor (**Confirm** / **Discard**) or the HTTP API / app—not MCP. There is no **`apply_ticket_update_draft`**, **`npm run edf:ticket:apply-draft`**, or agent CLI for apply/reject.
 
 ## Do not (unless the user explicitly opts in)
 
@@ -22,4 +22,4 @@ For **any** ticket change (comment, status, title, description, assignee, code l
 
 ## If MCP tools are missing
 
-Tell the user to enable **edf-tickets** under **Cursor → Settings → Features → Model Context Protocol**, then use the **CLI draft** commands above — still **draft**, not **`patch`**.
+Tell the user to enable **edf-tickets** under **Cursor → Settings → Features → Model Context Protocol**, then use the **CLI draft** command above — still **draft**, not **`patch`**.

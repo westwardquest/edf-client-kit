@@ -2,6 +2,7 @@
 /**
  * List / fetch EDF tickets over HTTP (same routes as MCP). Use when MCP tools are not
  * available in the current chat — agents can run this via the terminal from the workspace root.
+ * Ticket draft apply/reject is not available here; use the edf-tools extension (Confirm/Discard).
  *
  * Usage (cwd = workspace root, where edf.config lives):
  *   node vendor/edf-client-kit/mcp/tickets-cli.mjs list [--limit N] [--status <status>] [--queue]
@@ -164,7 +165,7 @@ async function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0] || "list";
 
-  if (cmd === "draft" || cmd === "apply-draft" || cmd === "reject-draft") {
+  if (cmd === "draft") {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const tsxCli = path.join(__dirname, "node_modules", "tsx", "dist", "cli.mjs");
     const draftCli = path.join(__dirname, "src", "ticket-draft-cli.ts");
@@ -256,8 +257,6 @@ async function main() {
   node .../tickets-cli.mjs lookup <query>
   node .../tickets-cli.mjs patch <ticketUuid> <patch.json>
   node .../tickets-cli.mjs draft <ticketUuid> [initial.json]
-  node .../tickets-cli.mjs apply-draft <draft-relative-path> <confirm_token>
-  node .../tickets-cli.mjs reject-draft <draft-relative-path>
 `);
   process.exit(1);
 }

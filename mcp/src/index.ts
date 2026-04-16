@@ -1,6 +1,6 @@
 /**
  * Stdio MCP server: ticket tools call the app's HTTP API with a personal access token.
- * Draft tools (`draft_ticket_update`, etc.) also write YAML under `.edf/ticket-drafts/`.
+ * Draft tool `draft_ticket_update` writes YAML under `.edf/ticket-drafts/` (apply only via EDF Tools, not MCP).
  * Run: `npm run mcp:tickets` from this package directory with env set.
  *
  * Auth: `EDF_PERSONAL_ACCESS_TOKEN` (edf_pat_…) from app Settings → Personal access tokens.
@@ -9,12 +9,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import * as z from "zod/v4";
 import { loadWorkspaceConfig } from "./workspace-config";
-import {
-  applyTicketUpdateDraft,
-  findWorkspaceRoot,
-  rejectTicketUpdateDraft,
-  writeTicketDraft,
-} from "./ticket-draft";
+import { findWorkspaceRoot, writeTicketDraft } from "./ticket-draft";
 
 const PAT_ENV = "EDF_PERSONAL_ACCESS_TOKEN";
 
@@ -79,7 +74,7 @@ const mcpServer = new McpServer({
   version: "0.1.0",
 });
 
-/** When set, registers legacy tools `update_ticket` and `add_ticket_comment`. Default is draft-only (`draft_ticket_update` / `apply_ticket_update_draft`). */
+/** When set, registers legacy tools `update_ticket` and `add_ticket_comment`. Default is draft-only (`draft_ticket_update`); apply/reject drafts only via EDF Tools, not MCP. */
 const allowDirectTicketUpdates =
   process.env.EDF_MCP_ALLOW_DIRECT_UPDATES === "1" ||
   process.env.EDF_MCP_ALLOW_DIRECT_UPDATES === "true";
@@ -251,7 +246,7 @@ mcpServer.registerTool(
   "draft_ticket_update",
   {
     description:
-      "Create a reviewable YAML draft under .edf/ticket-drafts/ (schema .ticket_draft). Edit the file, then call apply_ticket_update_draft with confirm_token. Prefer this over direct updates for agent-driven ticket changes.",
+      "Create a reviewable YAML draft under .edf/ticket-drafts/ (schema .ticket_draft). The human must open the draft in the EDF Tools ticket draft editor (VS Code) and use Confirm or Discard — do NOT call shell/CLI to apply or reject, and do not attempt to apply the draft via any other tool. Prefer this over direct updates for agent-driven ticket changes.",
     inputSchema: {
       slug: z.string().describe("Workspace slug (must match edf.config WORKSPACE_SLUG)"),
       ticketId: z.string().uuid().describe("Ticket UUID"),
@@ -328,79 +323,9 @@ mcpServer.registerTool(
       `Wrote draft file (YAML).\n\n` +
       `draft_path (relative to workspace): ${r.draftRelativePath}\n` +
       `confirm_token: ${r.confirm_token}\n\n` +
-      `Edit the file if needed, then run apply_ticket_update_draft with draft_path and confirm_token, or reject_ticket_update_draft to discard.\n` +
+      `Tell the user to open this file in the EDF Tools ticket draft editor and use Confirm (apply) or Discard. Do not run apply/reject via terminal, shell, or any MCP tool.\n` +
       `absolutePath: ${r.absolutePath}`;
     return { content: [{ type: "text" as const, text }] };
-  },
-);
-
-mcpServer.registerTool(
-  "apply_ticket_update_draft",
-  {
-    description:
-      "Apply a ticket draft created by draft_ticket_update: PATCH ticket fields then optional POST comment, then delete the draft file. confirm_token must match the draft file.",
-    inputSchema: {
-      draft_path: z
-        .string()
-        .min(1)
-        .describe("Path relative to workspace root or absolute path to .ticket_draft file"),
-      confirm_token: z.string().min(1).describe("Token from the draft file"),
-    },
-  },
-  async ({ draft_path, confirm_token }) => {
-    const root = findWorkspaceRoot(process.cwd());
-    if (!root) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "Could not find workspace root (edf.config). Open the client workspace folder in Cursor.",
-          },
-        ],
-        isError: true,
-      };
-    }
-    const r = await applyTicketUpdateDraft({
-      workspaceRoot: root,
-      draftPath: draft_path,
-      confirmToken: confirm_token,
-    });
-    return {
-      content: [{ type: "text" as const, text: r.summary }],
-      ...(r.ok ? {} : { isError: true as const }),
-    };
-  },
-);
-
-mcpServer.registerTool(
-  "reject_ticket_update_draft",
-  {
-    description: "Delete a ticket draft file without calling the API.",
-    inputSchema: {
-      draft_path: z
-        .string()
-        .min(1)
-        .describe("Path relative to workspace root or absolute path to .ticket_draft file"),
-    },
-  },
-  async ({ draft_path }) => {
-    const root = findWorkspaceRoot(process.cwd());
-    if (!root) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "Could not find workspace root (edf.config). Open the client workspace folder in Cursor.",
-          },
-        ],
-        isError: true,
-      };
-    }
-    const r = rejectTicketUpdateDraft({ workspaceRoot: root, draftPath: draft_path });
-    return {
-      content: [{ type: "text" as const, text: r.summary }],
-      ...(r.ok ? {} : { isError: true as const }),
-    };
   },
 );
 

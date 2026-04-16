@@ -47,7 +47,6 @@ async function main() {
         {
           ok: true,
           draft_path: r.draftRelativePath,
-          confirm_token: r.confirm_token,
           absolutePath: r.absolutePath,
         },
         null,

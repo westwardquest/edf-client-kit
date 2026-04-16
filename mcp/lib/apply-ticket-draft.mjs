@@ -128,10 +128,10 @@ async function apiFetch(baseUrl, token, method, pathname, jsonBody) {
 }
 
 /**
- * @param {{ workspaceRoot: string, draftPath: string, confirmToken: string }} params
+ * @param {{ workspaceRoot: string, draftPath: string }} params
  */
 export async function applyTicketUpdateDraft(params) {
-  const { workspaceRoot, confirmToken } = params;
+  const { workspaceRoot } = params;
   const absDraft = path.isAbsolute(params.draftPath)
     ? params.draftPath
     : path.join(workspaceRoot, params.draftPath);
@@ -150,11 +150,8 @@ export async function applyTicketUpdateDraft(params) {
     };
   }
 
-  if (doc.schema_version !== 1) {
+  if (doc.schema_version != null && doc.schema_version !== 1) {
     return { ok: false, summary: `Unsupported schema_version: ${doc.schema_version}` };
-  }
-  if (doc.confirm_token !== confirmToken) {
-    return { ok: false, summary: "confirm_token does not match this draft file." };
   }
 
   let slug;

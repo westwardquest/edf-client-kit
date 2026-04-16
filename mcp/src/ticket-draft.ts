@@ -17,7 +17,6 @@ export type TicketDraftDoc = {
   schema_version: number;
   workspace_slug: string;
   ticket_id: string;
-  confirm_token: string;
   title?: string;
   description?: string;
   type?: string;
@@ -35,14 +34,9 @@ export type TicketDraftDoc = {
   };
 };
 
-function generateToken(): string {
-  return crypto.randomBytes(16).toString("hex");
-}
-
 function draftTemplate(
   slug: string,
   ticketId: string,
-  token: string,
   initial: Partial<TicketDraftDoc>,
 ): string {
   const lines: string[] = [
@@ -51,7 +45,6 @@ function draftTemplate(
     `schema_version: 1`,
     `workspace_slug: ${YAML.stringify(slug).replace(/\n/g, "\n  ")}`,
     `ticket_id: ${ticketId}`,
-    `confirm_token: ${token}`,
     ``,
     `# --- PATCH fields (omit a key or leave commented to leave unchanged) ---`,
   ];
@@ -92,7 +85,6 @@ function draftTemplate(
   lines.push(`# --- Optional comment (omit entire comment block to skip) ---`);
   if (initial.comment?.body) {
     lines.push(`comment:`);
-    // Literal block (|) avoids YAML folded scalars (>-) merging lines or swallowing keys.
     lines.push(`  body: |`);
     for (const line of String(initial.comment.body).split("\n")) {
       lines.push(`    ${line}`);
@@ -117,20 +109,18 @@ export function writeTicketDraft(params: {
   slug: string;
   ticketId: string;
   initial?: Partial<TicketDraftDoc>;
-}): { draftRelativePath: string; confirm_token: string; absolutePath: string } {
+}): { draftRelativePath: string; absolutePath: string } {
   const { workspaceRoot, slug, ticketId } = params;
-  const token = generateToken();
   const short = crypto.randomBytes(4).toString("hex");
   const name = `${slug}-${ticketId}-${short}.ticket_draft`;
   const dir = path.join(workspaceRoot, DRAFT_SUBDIR);
   fs.mkdirSync(dir, { recursive: true });
   const absolutePath = path.join(dir, name);
-  const body = draftTemplate(slug, ticketId, token, params.initial ?? {});
+  const body = draftTemplate(slug, ticketId, params.initial ?? {});
   fs.writeFileSync(absolutePath, body, "utf8");
   const draftRelativePath = path.join(DRAFT_SUBDIR, name);
   return {
     draftRelativePath: draftRelativePath.split(path.sep).join("/"),
-    confirm_token: token,
     absolutePath,
   };
 }

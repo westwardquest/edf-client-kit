@@ -321,8 +321,7 @@ mcpServer.registerTool(
     });
     const text =
       `Wrote draft file (YAML).\n\n` +
-      `draft_path (relative to workspace): ${r.draftRelativePath}\n` +
-      `confirm_token: ${r.confirm_token}\n\n` +
+      `draft_path (relative to workspace): ${r.draftRelativePath}\n\n` +
       `Tell the user to open this file in the EDF Tools ticket draft editor and use Confirm (apply) or Discard. Do not run apply/reject via terminal, shell, or any MCP tool.\n` +
       `absolutePath: ${r.absolutePath}`;
     return { content: [{ type: "text" as const, text }] };

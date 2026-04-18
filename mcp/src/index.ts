@@ -128,12 +128,10 @@ mcpServer.registerTool(
       limit: z.number().int().min(1).max(100).optional(),
       status: z
         .enum([
-          "draft",
           "open",
           "in_progress",
           "blocked",
           "waiting_on_client",
-          "done",
           "closed",
         ])
         .optional(),
@@ -192,7 +190,7 @@ mcpServer.registerTool(
   "list_priority_active_tickets",
   {
     description:
-      "List highest-priority active work-queue tickets (GET .../tickets?queue=1). Excludes draft, done, closed; ordered by priority_score. Does not replace list_tickets for full history.",
+      "List highest-priority active work-queue tickets (GET .../tickets?queue=1). Excludes closed; ordered by priority_score. Does not replace list_tickets for full history.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),
@@ -225,12 +223,10 @@ const ticketPatchSchema = {
   type: z.enum(["bug", "feature", "question", "chore"]).optional(),
   status: z
     .enum([
-      "draft",
       "open",
       "in_progress",
       "blocked",
       "waiting_on_client",
-      "done",
       "closed",
     ])
     .optional(),
@@ -373,12 +369,10 @@ mcpServer.registerTool(
       type: z.enum(["bug", "feature", "question", "chore"]).optional(),
       status: z
         .enum([
-          "draft",
           "open",
           "in_progress",
           "blocked",
           "waiting_on_client",
-          "done",
           "closed",
         ])
         .optional(),

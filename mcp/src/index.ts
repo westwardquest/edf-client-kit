@@ -132,6 +132,7 @@ mcpServer.registerTool(
           "in_progress",
           "blocked",
           "waiting_on_client",
+          "client_responded",
           "closed",
         ])
         .optional(),
@@ -220,13 +221,14 @@ mcpServer.registerTool(
 const ticketPatchSchema = {
   title: z.string().optional(),
   description: z.string().optional(),
-  type: z.enum(["bug", "feature", "question", "chore"]).optional(),
+  type: z.enum(["bug", "feature", "question", "chore", "document"]).optional(),
   status: z
     .enum([
       "open",
       "in_progress",
       "blocked",
       "waiting_on_client",
+      "client_responded",
       "closed",
     ])
     .optional(),
@@ -366,13 +368,14 @@ mcpServer.registerTool(
       ticketId: z.string().uuid(),
       title: z.string().optional(),
       description: z.string().optional(),
-      type: z.enum(["bug", "feature", "question", "chore"]).optional(),
+      type: z.enum(["bug", "feature", "question", "chore", "document"]).optional(),
       status: z
         .enum([
           "open",
           "in_progress",
           "blocked",
           "waiting_on_client",
+          "client_responded",
           "closed",
         ])
         .optional(),

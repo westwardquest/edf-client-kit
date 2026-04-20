@@ -4,7 +4,7 @@ Portable **ticket MCP** and **Cursor** onboarding for customer workspaces: `mcp/
 
 **In the WarpDesk framework monorepo**, this tree is a **git submodule** at **`packages/warpdesk-client-kit`** (remote URL in **`.gitmodules`** / **`WARPDESK_CLIENT_KIT_GIT_URL`**) — clone the framework with **`--recurse-submodules`**. Customer workspaces get **`vendor/warpdesk-client-kit`** via **`npm run quickstart:customer`** (submodule when the workspace is a git repo) or **`scripts/quickstarts/setup-warpdesk-kit.mjs`**.
 
-Workspace-only automation (webhook helper, quickstart, optional launch helper) lives in the framework repo under **`scripts/quickstarts/`** — see **[`docs/repository_layout.md`](../../docs/engineering/repository_layout.md)**.
+Workspace-only automation (webhook helper, quickstart, optional launch helper) lives in the framework repo under **`scripts/quickstarts/`** — see **[`docs/engineering/repository_layout.md`](../../docs/engineering/repository_layout.md)**.
 
 ## Publishing (maintainers)
 
@@ -53,7 +53,7 @@ Quickstart defaults **`WARPDESK_CLIENT_KIT_GIT_URL`** to the URL in **`.env.exam
 2. Re-run from the **framework** repo only when needed: **`npm run quickstart:customer -- --client-root <workspace-repo>`** — refresh bootstrap/session + **`.cursor/mcp.json`**.
 3. Knowledge webhook (if not created by quickstart `--push`): from the framework repo, **`node scripts/quickstarts/create-knowledge-webhook.mjs <workspace-root>`**.
 
-See the framework **`README.md`**, **[`docs/repository_layout.md`](../../docs/engineering/repository_layout.md)**, and **[`docs/agents_and_api.md`](../../docs/integrations/agents_and_api.md)** (MCP + quickstart).
+See the framework **`README.md`**, **[`docs/engineering/repository_layout.md`](../../docs/engineering/repository_layout.md)**, and **[`docs/integrations/agents_and_api.md`](../../docs/integrations/agents_and_api.md)** (MCP + quickstart).
 
 ## Env (MCP)
 

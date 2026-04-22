@@ -63,7 +63,7 @@ function draftTemplate(
   optionalYaml(
     "status",
     initial.status,
-    "open | in_progress | blocked | waiting_on_client | closed",
+    "posted | heeded | cooking | blocked | waiting_on_client | client_responded | closed",
   );
   optionalYaml("customer_score", initial.customer_score, "0–100 (developers)");
   optionalYaml(

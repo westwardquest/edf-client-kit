@@ -128,8 +128,9 @@ mcpServer.registerTool(
       limit: z.number().int().min(1).max(100).optional(),
       status: z
         .enum([
-          "open",
-          "in_progress",
+          "posted",
+          "heeded",
+          "cooking",
           "blocked",
           "waiting_on_client",
           "client_responded",
@@ -224,8 +225,9 @@ const ticketPatchSchema = {
   type: z.enum(["bug", "feature", "question", "chore", "document"]).optional(),
   status: z
     .enum([
-      "open",
-      "in_progress",
+      "posted",
+      "heeded",
+      "cooking",
       "blocked",
       "waiting_on_client",
       "client_responded",
@@ -370,8 +372,9 @@ mcpServer.registerTool(
       type: z.enum(["bug", "feature", "question", "chore", "document"]).optional(),
       status: z
         .enum([
-          "open",
-          "in_progress",
+          "posted",
+          "heeded",
+          "cooking",
           "blocked",
           "waiting_on_client",
           "client_responded",

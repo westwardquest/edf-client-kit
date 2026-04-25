@@ -115,18 +115,48 @@ function normalizeCursorPath(p) {
 }
 
 /**
+ * Resolves a folder that contains `warpdesk.config` (WarpDesk **client** workspace).
+ * Tries `cwd`, **every** `workspace_roots` entry, then — if the tool targets a file —
+ * walks up from that file. This avoids a **fail-open** when Cursor lists a parent
+ * monorepo path first and that tree has no `warpdesk.config`.
+ *
  * @param {Record<string, unknown>} payload
- * @returns {string}
+ * @returns {string | null}
  */
-function resolveStartDir(payload) {
+function resolveWorkspaceRootForHook(payload) {
+  const tryDirs = /** @type {string[]} */ ([]);
   if (typeof payload.cwd === "string" && payload.cwd.trim()) {
-    return path.resolve(normalizeCursorPath(payload.cwd.trim()));
+    tryDirs.push(path.resolve(normalizeCursorPath(payload.cwd.trim())));
   }
   const roots = payload.workspace_roots;
-  if (Array.isArray(roots) && typeof roots[0] === "string" && roots[0].trim()) {
-    return path.resolve(normalizeCursorPath(roots[0].trim()));
+  if (Array.isArray(roots)) {
+    for (const r of roots) {
+      if (typeof r === "string" && r.trim()) {
+        tryDirs.push(path.resolve(normalizeCursorPath(r.trim())));
+      }
+    }
   }
-  return process.cwd();
+  if (tryDirs.length === 0) {
+    tryDirs.push(process.cwd());
+  }
+  for (const d of tryDirs) {
+    const w = findWorkspaceRoot(d);
+    if (w) {
+      return w;
+    }
+  }
+  const toolInput = payload.tool_input;
+  if (toolInput && typeof toolInput === "object") {
+    const target = primaryTargetPath(toolInput);
+    if (target) {
+      const abs = path.resolve(normalizeCursorPath(target));
+      const w = findWorkspaceRoot(path.dirname(abs));
+      if (w) {
+        return w;
+      }
+    }
+  }
+  return null;
 }
 
 function findWorkspaceRoot(startDir) {
@@ -382,19 +412,13 @@ function main() {
     return;
   }
 
-  const startDir = resolveStartDir(
+  const workspaceRoot = resolveWorkspaceRootForHook(
     /** @type {Record<string, unknown>} */ (payload),
   );
-  const configProbe = path.join(startDir, "warpdesk.config");
-  const configExists = fs.existsSync(configProbe);
-  const workspaceRoot = findWorkspaceRoot(startDir);
   if (!workspaceRoot) {
     dbg("allow", {
-      reason: "no_warpdesk_config_in_walk",
-      startDir,
-      configExistsAtStartDir: configExists,
-      warpdesk_in_parent:
-        "walk upward until warpdesk.config or root — null means allow (fail open)",
+      reason: "no_warpdesk_config_resolved",
+      note: "Tried cwd, all workspace_roots, and the tool file target directory (see resolveWorkspaceRootForHook).",
     });
     out({ permission: "allow" });
     return;

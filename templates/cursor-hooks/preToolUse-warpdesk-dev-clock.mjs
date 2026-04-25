@@ -12,6 +12,7 @@
  *   `npm test`, `npx vitest`) are allowed without the clock. **Ambiguous** commands default to allow;
  *   set WARPDESK_HOOK_SHELL_AMBIGUOUS=deny to require the clock for them too.
  * - WARPDESK_HOOK_ALLOW_CURSOR_PHASE=1 — treat **cursor** phase like **dev**.
+ * - WARPDESK_HOOK_ALLOW_NO_TICKET_ID=1 — allow **dev** and **cursor** even when **ticketId** is empty in clock state (default: require a non-empty **ticketId** whenever phase is dev or cursor).
  * - WARPDESK_HOOK_PERMISSION — `deny` | `ask` when blocked (default `deny`).
  * - WARPDESK_HOOK_DEBUG=1 — log JSON lines to **stderr** (see Cursor Hooks output) with reason codes; does not change stdout.
  *
@@ -169,17 +170,53 @@ function findWorkspaceRoot(startDir) {
   }
 }
 
-function readLocalClockPhase(workspaceRoot) {
+/**
+ * @param {string} workspaceRoot
+ * @returns {{ phase: "idle" | "dev" | "cursor"; ticketId: string | null }}
+ */
+function readLocalClockState(workspaceRoot) {
   const p = path.join(workspaceRoot, ".warpdesk", "clock-local-state.json");
-  if (!fs.existsSync(p)) return "idle";
+  if (!fs.existsSync(p)) {
+    return { phase: "idle", ticketId: null };
+  }
   try {
     const j = JSON.parse(fs.readFileSync(p, "utf8"));
     const ph = j.phase;
-    if (ph === "dev" || ph === "cursor" || ph === "idle") return ph;
-    return "idle";
+    const phase =
+      ph === "dev" || ph === "cursor" || ph === "idle" ? ph : "idle";
+    const raw = j.ticketId;
+    const ticketId =
+      typeof raw === "string" && raw.trim() ? raw.trim() : null;
+    return { phase, ticketId };
   } catch {
-    return "idle";
+    return { phase: "idle", ticketId: null };
   }
+}
+
+function allowNoTicketIdBypass() {
+  const v = process.env.WARPDESK_HOOK_ALLOW_NO_TICKET_ID;
+  if (v == null || v === "") return false;
+  return v === "1" || v === "true" || v.toLowerCase() === "yes";
+}
+
+/**
+ * @param {string} phase
+ * @param {string | null} ticketId
+ * @param {boolean} allowCursor
+ * @returns {{ allow: boolean; reason: "ok" | "phase" | "no_ticket" }}
+ */
+function evaluateClockGate(phase, ticketId, allowCursor) {
+  const phaseOk = phase === "dev" || (allowCursor && phase === "cursor");
+  if (!phaseOk) {
+    return { allow: false, reason: "phase" };
+  }
+  if (allowNoTicketIdBypass()) {
+    return { allow: true, reason: "ok" };
+  }
+  if (ticketId) {
+    return { allow: true, reason: "ok" };
+  }
+  return { allow: false, reason: "no_ticket" };
 }
 
 function primaryTargetPath(toolInput) {
@@ -348,15 +385,6 @@ function isNpxReadSafe(seg) {
   return false;
 }
 
-function requireClock(
-  phase,
-  allowCursor,
-) {
-  return (
-    phase === "dev" || (allowCursor && phase === "cursor")
-  );
-}
-
 function denyClock(permission) {
   const msg =
     "WarpDesk dev clock is not running (see .warpdesk/clock-local-state.json). Start dev on the active ticket in WarpDesk Tools / the ticket selector before agent file edits, or set WARPDESK_HOOK_ALLOW_CURSOR_PHASE=1 to allow while the Cursor clock phase is active.";
@@ -366,6 +394,26 @@ function denyClock(permission) {
     agent_message:
       "Blocked by WarpDesk clock hook: start the dev clock on the active ticket (or enable cursor phase via env) before substantive edits (including this shell). Set WARPDESK_HOOK_GATE_SHELL=0 to disable shell gating.",
   };
+}
+
+function denyNoTicketId(permission) {
+  return {
+    permission,
+    user_message:
+      "WarpDesk clock has no active ticket (ticketId is empty in .warpdesk/clock-local-state.json). Set the active ticket (WarpDesk: Set active ticket, or Start in the ticket selector) before agent edits.",
+    agent_message:
+      "Blocked: ticketId must be set in .warpdesk/clock-local-state.json for dev/cursor phase. The extension sets it when you pick a ticket. Set WARPDESK_HOOK_ALLOW_NO_TICKET_ID=1 only if you must bypass (not recommended).",
+  };
+}
+
+/**
+ * @param {"deny"|"ask"} permission
+ * @param {"phase"|"no_ticket"} blockReason
+ */
+function denyForClock(permission, blockReason) {
+  return blockReason === "no_ticket"
+    ? denyNoTicketId(permission)
+    : denyClock(permission);
 }
 
 function main() {
@@ -424,9 +472,10 @@ function main() {
     return;
   }
 
-  const phase = readLocalClockPhase(workspaceRoot);
+  const { phase, ticketId } = readLocalClockState(workspaceRoot);
   const allowCursor = process.env.WARPDESK_HOOK_ALLOW_CURSOR_PHASE === "1";
-  const clockOk = requireClock(phase, allowCursor);
+  const gate = evaluateClockGate(phase, ticketId, allowCursor);
+  const clockOk = gate.allow;
 
   const permRaw = (process.env.WARPDESK_HOOK_PERMISSION || "deny").toLowerCase();
   const permBlock = permRaw === "ask" ? "ask" : "deny";
@@ -459,12 +508,24 @@ function main() {
       return;
     }
     if (clockOk) {
-      dbg("allow", { reason: "shell_clock_ok", toolName, phase });
+      dbg("allow", {
+        reason: "shell_clock_ok",
+        toolName,
+        phase,
+        ticketId,
+      });
       out({ permission: "allow" });
       return;
     }
-    dbg("deny", { reason: "shell_needs_clock", toolName, phase, kind });
-    out(denyClock(permBlock));
+    dbg("deny", {
+      reason: "shell_needs_clock",
+      toolName,
+      phase,
+      ticketId,
+      block: gate.reason,
+      kind,
+    });
+    out(denyForClock(permBlock, gate.reason));
     return;
   }
 
@@ -484,13 +545,26 @@ function main() {
   const target = primaryTargetPath(toolInput);
   const exempt = Boolean(target && isExemptPath(workspaceRoot, target));
   if (exempt) {
-    dbg("allow", { reason: "exempt_path", toolName, target, phase });
+    dbg("allow", {
+      reason: "exempt_path",
+      toolName,
+      target,
+      phase,
+      ticketId,
+    });
     out({ permission: "allow" });
     return;
   }
 
   if (clockOk) {
-    dbg("allow", { reason: "clock_ok", toolName, phase, target, exempt: false });
+    dbg("allow", {
+      reason: "clock_ok",
+      toolName,
+      phase,
+      ticketId,
+      target,
+      exempt: false,
+    });
     out({ permission: "allow" });
     return;
   }
@@ -499,9 +573,11 @@ function main() {
     reason: "edit_needs_dev_clock",
     toolName,
     phase,
+    ticketId,
+    block: gate.reason,
     target,
   });
-  out(denyClock(permBlock));
+  out(denyForClock(permBlock, gate.reason));
 }
 
 main();

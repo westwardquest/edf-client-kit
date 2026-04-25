@@ -468,11 +468,13 @@ mcpServer.registerTool(
   "request_cursor_session",
   {
     description:
-      "Calls the WarpDesk Tools extension on localhost (POST /cursor-session/start|stop). Requires the extension running with an active workspace: dev clock must be running before start; stop ends Cursor clock without restarting dev.",
+      "Calls the WarpDesk Tools extension on localhost (POST /cursor-session/start|stop). Requires the extension running with an active workspace: dev clock must be running before start; stop ends Cursor clock (optionally resume dev).",
     inputSchema: {
       action: z
-        .enum(["start", "stop"])
-        .describe("start: end dev segment and begin Cursor segment (gates apply). stop: end Cursor segment only."),
+        .enum(["start", "stop", "stop_and_resume_dev"])
+        .describe(
+          "start: end dev segment and begin Cursor segment. stop: end Cursor segment to idle. stop_and_resume_dev: end Cursor segment and immediately start a new dev segment.",
+        ),
     },
   },
   async ({ action }) => {
@@ -525,10 +527,20 @@ mcpServer.registerTool(
     const pathname =
       action === "start" ? "/cursor-session/start" : "/cursor-session/stop";
     const url = `http://127.0.0.1:${port}${pathname}`;
+    const body =
+      action === "stop_and_resume_dev"
+        ? JSON.stringify({ resume_dev: true, source_hook_event: "mcp_tool" })
+        : action === "stop"
+          ? JSON.stringify({ resume_dev: false, source_hook_event: "mcp_tool" })
+          : JSON.stringify({ source_hook_event: "mcp_tool" });
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${authToken}` },
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body,
       });
       const text = await res.text();
       return { content: [{ type: "text" as const, text }] };

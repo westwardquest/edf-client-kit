@@ -93,7 +93,12 @@ function gateShellEnabled() {
 }
 
 function ambiguousIsDeny() {
-  return process.env.WARPDESK_HOOK_SHELL_AMBIGUOUS === "deny";
+  const v = String(process.env.WARPDESK_HOOK_SHELL_AMBIGUOUS || "")
+    .trim()
+    .toLowerCase();
+  if (v === "deny") return true;
+  if (v === "allow") return false;
+  return requireCursorPhase();
 }
 
 /**

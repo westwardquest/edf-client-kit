@@ -1,6 +1,41 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [
+      {
+        "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/lifecycle-warpdesk-clock.mjs",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ],
+    "stop": [
+      {
+        "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/lifecycle-warpdesk-clock.mjs",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/lifecycle-warpdesk-clock.mjs",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/lifecycle-warpdesk-clock.mjs",
+        "timeout": 3,
+        "failClosed": false
+      }
+    ],
+    "postToolUseFailure": [
+      {
+        "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/lifecycle-warpdesk-clock.mjs",
+        "timeout": 3,
+        "failClosed": false
+      }
+    ],
     "preToolUse": [
       {
         "command": "node ./vendor/warpdesk-client-kit/templates/cursor-hooks/preToolUse-warpdesk-dev-clock.mjs",

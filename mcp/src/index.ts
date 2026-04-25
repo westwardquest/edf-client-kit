@@ -12,7 +12,7 @@ import * as path from "node:path";
 import * as z from "zod/v4";
 import { loadWorkspaceConfig } from "./workspace-config";
 import { findWorkspaceRoot, writeTicketDraft } from "./ticket-draft";
-import { writeTicketSelectorFile } from "./ticket-selector-file";
+import { trySyncTicketSelectorFromMcpToolResponse } from "./ticket-selector-file";
 
 const PAT_ENV = "WARPDESK_PERSONAL_ACCESS_TOKEN";
 
@@ -39,6 +39,36 @@ function authHeaders(contentType?: string): Record<string, string> {
     h["Content-Type"] = contentType;
   }
   return h;
+}
+
+async function maybeAppendTicketSelectorHint(
+  slug: string,
+  r: { text: string; isError?: boolean },
+  shape: "list" | "get" | "lookup",
+): Promise<string> {
+  if (r.isError) {
+    return r.text;
+  }
+  const root = findWorkspaceRoot(process.cwd());
+  if (!root) {
+    return r.text;
+  }
+  try {
+    const sync = await trySyncTicketSelectorFromMcpToolResponse({
+      workspaceRoot: root,
+      slug,
+      toolText: r.text,
+      shape,
+    });
+    if (sync.ok) {
+      return (
+        `${r.text}\n\nUpdated WarpDesk ticket selector (open in WarpDesk Tools): ${sync.relativePath}`
+      );
+    }
+  } catch {
+    /* ignore selector side effects */
+  }
+  return r.text;
 }
 
 async function toolJson(
@@ -125,7 +155,7 @@ mcpServer.registerTool(
   "list_tickets",
   {
     description:
-      "List tickets in a workspace (same as GET /api/w/{slug}/tickets).",
+      "List tickets in a workspace (same as GET /api/w/{slug}/tickets). On success, merges results into the single workspace file .warpdesk/tickets.ticketselector (priority order, cumulative dev/Cursor times) for the WarpDesk Tools ticket selector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),
@@ -159,8 +189,9 @@ mcpServer.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       r = { text: msg, isError: true };
     }
+    const text = await maybeAppendTicketSelectorHint(slug, r, "list");
     return {
-      content: [{ type: "text" as const, text: r.text }],
+      content: [{ type: "text" as const, text }],
       ...(r.isError ? { isError: true as const } : {}),
     };
   },
@@ -169,7 +200,8 @@ mcpServer.registerTool(
 mcpServer.registerTool(
   "get_ticket",
   {
-    description: "Get one ticket with comments (GET /api/w/{slug}/tickets/{id}).",
+    description:
+      "Get one ticket with comments (GET /api/w/{slug}/tickets/{id}). On success, merges this ticket into .warpdesk/tickets.ticketselector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       ticketId: z.string().uuid().describe("Ticket UUID"),
@@ -184,8 +216,9 @@ mcpServer.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       r = { text: msg, isError: true };
     }
+    const text = await maybeAppendTicketSelectorHint(slug, r, "get");
     return {
-      content: [{ type: "text" as const, text: r.text }],
+      content: [{ type: "text" as const, text }],
       ...(r.isError ? { isError: true as const } : {}),
     };
   },
@@ -195,7 +228,7 @@ mcpServer.registerTool(
   "get_ticket_by_number",
   {
     description:
-      "Get one ticket by integer ticket_number with comments (GET .../tickets/by-number/{n}). Same JSON shape as get_ticket.",
+      "Get one ticket by integer ticket_number with comments (GET .../tickets/by-number/{n}). Same JSON shape as get_ticket. On success, merges into .warpdesk/tickets.ticketselector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       ticket_number: z
@@ -214,8 +247,9 @@ mcpServer.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       r = { text: msg, isError: true };
     }
+    const text = await maybeAppendTicketSelectorHint(slug, r, "get");
     return {
-      content: [{ type: "text" as const, text: r.text }],
+      content: [{ type: "text" as const, text }],
       ...(r.isError ? { isError: true as const } : {}),
     };
   },
@@ -225,7 +259,7 @@ mcpServer.registerTool(
   "list_priority_active_tickets",
   {
     description:
-      "List active work-queue tickets (GET .../tickets?queue=1), ordered by priority_score. Optional band=N (with queue) returns only tickets within N points of the top active priority_score (same as app queue band).",
+      "List active work-queue tickets (GET .../tickets?queue=1), ordered by priority_score. Optional band=N (with queue) returns only tickets within N points of the top active priority_score (same as app queue band). On success, merges into .warpdesk/tickets.ticketselector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),
@@ -257,8 +291,9 @@ mcpServer.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       r = { text: msg, isError: true };
     }
+    const text = await maybeAppendTicketSelectorHint(slug, r, "list");
     return {
-      content: [{ type: "text" as const, text: r.text }],
+      content: [{ type: "text" as const, text }],
       ...(r.isError ? { isError: true as const } : {}),
     };
   },
@@ -376,7 +411,7 @@ mcpServer.registerTool(
   "search_tickets",
   {
     description:
-      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q=).",
+      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q=). On success, merges hits into .warpdesk/tickets.ticketselector.",
     inputSchema: {
       slug: z.string(),
       q: z.string().min(1),
@@ -396,84 +431,11 @@ mcpServer.registerTool(
       const msg = e instanceof Error ? e.message : String(e);
       r = { text: msg, isError: true };
     }
+    const text = await maybeAppendTicketSelectorHint(slug, r, "lookup");
     return {
-      content: [{ type: "text" as const, text: r.text }],
+      content: [{ type: "text" as const, text }],
       ...(r.isError ? { isError: true as const } : {}),
     };
-  },
-);
-
-mcpServer.registerTool(
-  "create_ticket_selector_file",
-  {
-    description:
-      "Write a .ticketselector JSON file under .warpdesk/ticket-selectors/ for the WarpDesk Tools ticket selector editor (open in VS Code / Cursor).",
-    inputSchema: {
-      slug: z.string().describe("Workspace slug (must match warpdesk.config WORKSPACE_SLUG)"),
-      tickets: z
-        .array(
-          z.object({
-            id: z.string().uuid(),
-            ticket_number: z.number().int().min(1),
-            title: z.string(),
-            priority_score: z.number().nullable().optional(),
-          }),
-        )
-        .min(1),
-      active_index: z.number().int().min(0).optional(),
-    },
-  },
-  async (args) => {
-    const root = findWorkspaceRoot(process.cwd());
-    if (!root) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: "Could not find workspace root (warpdesk.config). Open the client workspace folder in Cursor.",
-          },
-        ],
-        isError: true,
-      };
-    }
-    let cfgSlug: string;
-    try {
-      ({ slug: cfgSlug } = loadWorkspaceConfig(root));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      return {
-        content: [{ type: "text" as const, text: msg }],
-        isError: true,
-      };
-    }
-    if (cfgSlug !== args.slug) {
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `slug "${args.slug}" does not match warpdesk.config WORKSPACE_SLUG "${cfgSlug}".`,
-          },
-        ],
-        isError: true,
-      };
-    }
-    const r = writeTicketSelectorFile({
-      workspaceRoot: root,
-      slug: args.slug,
-      tickets: args.tickets.map((t) => ({
-        id: t.id,
-        ticket_number: t.ticket_number,
-        title: t.title,
-        priority_score: t.priority_score ?? null,
-      })),
-      active_index: args.active_index,
-    });
-    const text =
-      `Wrote ticket selector file.\n\n` +
-      `relativePath: ${r.relativePath}\n\n` +
-      `Open in WarpDesk Tools (custom editor for *.ticketselector).\n` +
-      `absolutePath: ${r.absolutePath}`;
-    return { content: [{ type: "text" as const, text }] };
   },
 );
 

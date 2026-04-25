@@ -1,0 +1,19 @@
+---
+description: Remind users to enable the warpdesk-tickets MCP server in Cursor (cannot be set by quickstart).
+globs:
+alwaysApply: true
+---
+
+# WarpDesk MCP (warpdesk-tickets)
+
+Quickstart writes **`.cursor/mcp.json`** but **cannot** turn the server on in Cursor’s UI.
+
+If ticket MCP tools (`list_tickets`, `get_ticket`, `request_cursor_session`, etc.) do not appear after restart, tell the user to open **Cursor Settings → Features → Model Context Protocol** and **enable the `warpdesk-tickets` server** (toggle on). New or project-defined servers sometimes start disabled per workspace.
+
+If the MCP log shows **Cannot find module** under the **workspace root** `node_modules/tsx`, the fix is **full paths** in `mcp.json` `args` (see latest quickstart); re-run **`npm run quickstart:customer -- --client-root <this-workspace>`** from the framework repo.
+
+**Auth:** `warpdesk-tickets` requires **`WARPDESK_PERSONAL_ACCESS_TOKEN`** (full `wds_pat_…` from the app **Settings → personal access tokens**) and **`WARPDESK_BASE_URL`** in `mcp.json` `env`. It does **not** use Supabase session tokens for ticket HTTP calls.
+
+**Do not** set `WARPDESK_MCP_ALLOW_DIRECT_UPDATES` unless you need legacy `update_ticket` / `add_ticket_comment` MCP tools — default is **draft-only** (`draft_ticket_update` only; humans apply drafts in **warpdesk-tools** or the HTTP API, not via MCP).
+
+**Local extension:** `request_cursor_session` talks to **WarpDesk Tools** on localhost (see `.warpdesk/extension-control.json` when the extension is running).

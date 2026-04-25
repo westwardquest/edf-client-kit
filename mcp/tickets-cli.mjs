@@ -6,6 +6,7 @@
  *
  * Usage (cwd = workspace root, where warpdesk.config lives):
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs list [--limit N] [--status <status>] [--queue]
+ *   (after a successful list, updates .warpdesk/tickets.ticketselector when tsx is available)
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs get <ticketUuid>
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs lookup <query>
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs patch <ticketUuid> <path-to.json>
@@ -15,10 +16,12 @@
  * Slug: warpdesk.config WORKSPACE_SLUG.
  */
 import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { findWorkspaceRoot } from "./workspace-root.mjs";
+
+const __dirnameCli = path.dirname(fileURLToPath(import.meta.url));
 
 function parseConfig(raw) {
   const out = {};
@@ -200,6 +203,30 @@ async function main() {
       process.exit(1);
     }
     printList(body);
+    if (typeof body === "object" && body !== null && body.ok === true) {
+      const tsxCli = path.join(__dirnameCli, "node_modules", "tsx", "dist", "cli.mjs");
+      const syncCli = path.join(__dirnameCli, "src", "ticket-selector-sync-cli.ts");
+      if (fs.existsSync(tsxCli) && fs.existsSync(syncCli)) {
+        const result = spawnSync(
+          process.execPath,
+          [tsxCli, syncCli, workspaceRoot, slug],
+          {
+            input: JSON.stringify(body),
+            encoding: "utf-8",
+            cwd: workspaceRoot,
+            env: process.env,
+          },
+        );
+        if (result.status !== 0) {
+          const err = (result.stderr || result.stdout || "").trim();
+          console.error(
+            err
+              ? `WarpDesk: ticket selector not updated (${err.slice(0, 400)})`
+              : "WarpDesk: ticket selector not updated.",
+          );
+        }
+      }
+    }
     return;
   }
 

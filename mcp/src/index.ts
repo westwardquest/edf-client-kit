@@ -155,7 +155,7 @@ mcpServer.registerTool(
   "list_tickets",
   {
     description:
-      "List tickets in a workspace (same as GET /api/w/{slug}/tickets with include_comments=1). Each ticket may include up to 30 comments (500 total cap per response); comments are not written into .warpdesk/tickets.ticketselector (selector merge strips them). On success, merges ticket rows into that file (priority order, cumulative dev/Cursor times) for the WarpDesk Tools ticket selector.",
+      "List tickets in a workspace (same as GET /api/w/{slug}/tickets with include_comments=1). Each ticket may include up to 30 comments (500 total cap per response). On success, merges ticket rows plus ticket/comment snapshots into .warpdesk/tickets.ticketselector (priority order, cumulative dev/Cursor times) for the WarpDesk Tools ticket selector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),
@@ -283,7 +283,7 @@ mcpServer.registerTool(
   "list_priority_active_tickets",
   {
     description:
-      "List priority work-queue tickets (GET .../tickets?queue=1&include_comments=1), ordered by priority_score. The server queue **excludes `needs_client`** (use `list_tickets` for those). Optional band=N (with queue) returns only tickets within N points of the top priority_score in that set. Comments (capped per API) appear in the JSON tool output only; they are not merged into .warpdesk/tickets.ticketselector. On success, merges ticket rows into that selector file.",
+      "List priority work-queue tickets (GET .../tickets?queue=1&include_comments=1), ordered by priority_score. The server queue **excludes `needs_client`** (use `list_tickets` for those). Optional band=N (with queue) returns only tickets within N points of the top priority_score in that set. On success, merges ticket rows plus ticket/comment snapshots into .warpdesk/tickets.ticketselector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),

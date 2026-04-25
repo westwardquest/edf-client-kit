@@ -27,6 +27,16 @@ export type TicketSelectorEntry = {
   cursor_ms?: number;
   total_ms?: number;
   first_started_at?: string | null;
+  ticket_snapshot?: Record<string, unknown>;
+  comments_snapshot?: Array<{
+    id: string;
+    ticket_id?: string;
+    body: string;
+    visibility: string;
+    author_id?: string | null;
+    created_at: string;
+    parent_comment_id?: string | null;
+  }>;
 };
 
 export type TicketSelectorDoc = {
@@ -34,6 +44,8 @@ export type TicketSelectorDoc = {
   workspace_slug: string;
   tickets: TicketSelectorEntry[];
   active_index: number;
+  /** Global map of auth user id -> display label (extension + MCP hydrate). */
+  user_display_names?: Record<string, string>;
 };
 
 export type IncomingTicketRow = {
@@ -43,6 +55,8 @@ export type IncomingTicketRow = {
   priority_score: number | null;
   status?: string;
   type?: string;
+  ticket_snapshot?: Record<string, unknown>;
+  comments_snapshot?: TicketSelectorEntry["comments_snapshot"];
 };
 
 type BulkSummary = {
@@ -76,7 +90,59 @@ function normalizeIncoming(row: unknown): IncomingTicketRow | null {
   const status = typeof r.status === "string" ? r.status : undefined;
   if (status === "closed") return null;
   const type = typeof r.type === "string" ? r.type : undefined;
-  return { id, ticket_number, title, priority_score, status, type };
+  const ticket_snapshot = normalizeTicketSnapshot(r);
+  const comments_snapshot = normalizeCommentsSnapshot(r.comments);
+  return {
+    id,
+    ticket_number,
+    title,
+    priority_score,
+    status,
+    type,
+    ticket_snapshot,
+    comments_snapshot,
+  };
+}
+
+function normalizeTicketSnapshot(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row)) {
+    if (k === "comments") continue;
+    if (
+      typeof v === "string" ||
+      typeof v === "number" ||
+      typeof v === "boolean" ||
+      v === null
+    ) {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
+function normalizeCommentsSnapshot(
+  comments: unknown,
+): TicketSelectorEntry["comments_snapshot"] {
+  if (!Array.isArray(comments)) {
+    return [];
+  }
+  const out: NonNullable<TicketSelectorEntry["comments_snapshot"]> = [];
+  for (const c of comments) {
+    if (!c || typeof c !== "object") continue;
+    const row = c as Record<string, unknown>;
+    out.push({
+      id: typeof row.id === "string" ? row.id : "",
+      ticket_id: typeof row.ticket_id === "string" ? row.ticket_id : undefined,
+      body: typeof row.body === "string" ? row.body : "",
+      visibility: typeof row.visibility === "string" ? row.visibility : "",
+      author_id:
+        typeof row.author_id === "string" ? row.author_id : null,
+      created_at: typeof row.created_at === "string" ? row.created_at : "",
+      parent_comment_id:
+        typeof row.parent_comment_id === "string" ? row.parent_comment_id : null,
+    });
+  }
+  return out;
 }
 
 export function sortTicketsByPriority(tickets: TicketSelectorEntry[]): TicketSelectorEntry[] {
@@ -111,6 +177,12 @@ function mergeEntry(
     priority_score: incoming.priority_score,
     ...(incoming.status !== undefined ? { status: incoming.status } : {}),
     ...(incoming.type !== undefined ? { type: incoming.type } : {}),
+    ...(incoming.ticket_snapshot
+      ? { ticket_snapshot: incoming.ticket_snapshot }
+      : {}),
+    ...(incoming.comments_snapshot
+      ? { comments_snapshot: incoming.comments_snapshot }
+      : {}),
   };
 }
 
@@ -314,11 +386,19 @@ export async function syncCanonicalTicketSelector(params: {
   });
   mergedList = applySummaries(mergedList, summaries);
 
+  const prevNames =
+    previous &&
+    typeof previous.user_display_names === "object" &&
+    previous.user_display_names !== null
+      ? { ...previous.user_display_names }
+      : undefined;
+
   const doc: TicketSelectorDoc = {
     schema_version: 2,
     workspace_slug: slug,
     tickets: mergedList,
     active_index,
+    ...(prevNames ? { user_display_names: prevNames } : {}),
   };
 
   const absolutePath = path.join(workspaceRoot, CANONICAL_SELECTOR_RELATIVE);

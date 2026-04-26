@@ -152,6 +152,31 @@ mcpServer.registerTool(
 );
 
 mcpServer.registerTool(
+  "get_users",
+  {
+    description:
+      "Get all members for a workspace (GET /api/w/{slug}/users). Returns user_id, role, label, avatar_url.",
+    inputSchema: {
+      slug: z.string().describe("Workspace slug"),
+    },
+  },
+  async ({ slug }) => {
+    const apiPath = `/api/w/${encodeURIComponent(slug)}/users`;
+    let r: { text: string; isError?: boolean };
+    try {
+      r = await toolJson("GET", apiPath);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      r = { text: msg, isError: true };
+    }
+    return {
+      content: [{ type: "text" as const, text: r.text }],
+      ...(r.isError ? { isError: true as const } : {}),
+    };
+  },
+);
+
+mcpServer.registerTool(
   "get_ticket",
   {
     description:

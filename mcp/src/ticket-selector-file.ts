@@ -25,7 +25,14 @@ const wu = require(
   }) => Promise<void>;
 };
 
+/** Workspace-local ticket pool for WarpDesk Tools (JSON, `*.ticket_selector`). */
 export const CANONICAL_SELECTOR_RELATIVE = path.join(
+  ".warpdesk",
+  ".ticket_selector",
+);
+
+/** Previous default path; still read for migration until overwritten. */
+export const LEGACY_CANONICAL_SELECTOR_RELATIVE = path.join(
   ".warpdesk",
   "tickets.ticket_selector",
 );
@@ -203,10 +210,7 @@ function mergeEntry(
   };
 }
 
-export function readCanonicalSelectorDoc(
-  workspaceRoot: string,
-): TicketSelectorDoc | null {
-  const abs = path.join(workspaceRoot, CANONICAL_SELECTOR_RELATIVE);
+function tryReadSelectorAt(abs: string): TicketSelectorDoc | null {
   if (!fs.existsSync(abs)) {
     return null;
   }
@@ -219,6 +223,25 @@ export function readCanonicalSelectorDoc(
     return doc;
   } catch {
     return null;
+  }
+}
+
+export function readCanonicalSelectorDoc(
+  workspaceRoot: string,
+): TicketSelectorDoc | null {
+  const absNew = path.join(workspaceRoot, CANONICAL_SELECTOR_RELATIVE);
+  const absLegacy = path.join(workspaceRoot, LEGACY_CANONICAL_SELECTOR_RELATIVE);
+  return tryReadSelectorAt(absNew) ?? tryReadSelectorAt(absLegacy);
+}
+
+function unlinkLegacyCanonicalFileIfPresent(workspaceRoot: string): void {
+  const legacy = path.join(workspaceRoot, LEGACY_CANONICAL_SELECTOR_RELATIVE);
+  if (fs.existsSync(legacy)) {
+    try {
+      fs.unlinkSync(legacy);
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -414,6 +437,7 @@ export async function syncCanonicalTicketSelector(params: {
   const dir = path.dirname(absolutePath);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(absolutePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+  unlinkLegacyCanonicalFileIfPresent(workspaceRoot);
   tryCleanupLegacySelectorFiles(workspaceRoot);
 
   try {
@@ -532,4 +556,106 @@ export async function trySyncTicketSelectorFromMcpToolResponse(params: {
     slug: params.slug,
     incoming,
   });
+}
+
+/**
+ * Like {@link syncCanonicalTicketSelector} but does not merge with existing rows:
+ * the file's tickets array becomes exactly the incoming set (priority-sorted), plus time summaries.
+ * Use for `list_priority_active_tickets`-style refresh that should drop tickets no longer in the queue.
+ */
+export async function replaceCanonicalTicketSelector(params: {
+  workspaceRoot: string;
+  slug: string;
+  incoming: IncomingTicketRow[];
+}): Promise<SyncCanonicalSelectorResult> {
+  const { workspaceRoot, slug, incoming } = params;
+
+  let cfgSlug: string;
+  let baseUrl: string;
+  let token: string;
+  try {
+    ({ slug: cfgSlug, baseUrl, token } = loadWorkspaceConfig(workspaceRoot));
+  } catch (e) {
+    return {
+      ok: false,
+      reason: e instanceof Error ? e.message : String(e),
+    };
+  }
+  if (cfgSlug !== slug) {
+    return {
+      ok: false,
+      reason: `slug "${slug}" does not match warpdesk.config WORKSPACE_SLUG "${cfgSlug}"`,
+    };
+  }
+
+  const previous = readCanonicalSelectorDoc(workspaceRoot);
+  const byId = new Map<string, TicketSelectorEntry>();
+  for (const row of incoming) {
+    const merged = mergeEntry(undefined, row);
+    byId.set(row.id, merged);
+  }
+
+  let mergedList = Array.from(byId.values()).filter((t) => t.status !== "closed");
+  mergedList = sortTicketsByPriority(mergedList);
+  const active_index = resolveActiveIndexAfterSort(previous, mergedList);
+
+  const summaries =
+    mergedList.length === 0
+      ? new Map<string, BulkSummary>()
+      : await fetchBulkSummaries({
+          baseUrl,
+          token,
+          slug,
+          ticketIds: mergedList.map((t) => t.id),
+        });
+  mergedList = applySummaries(mergedList, summaries);
+
+  const doc: TicketSelectorDoc = {
+    schema_version: 2,
+    workspace_slug: slug,
+    tickets: mergedList,
+    active_index,
+  };
+
+  const absolutePath = path.join(workspaceRoot, CANONICAL_SELECTOR_RELATIVE);
+  const dir = path.dirname(absolutePath);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(absolutePath, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+  unlinkLegacyCanonicalFileIfPresent(workspaceRoot);
+  tryCleanupLegacySelectorFiles(workspaceRoot);
+
+  try {
+    await wu.ensureWorkspaceUsersCacheForSelectorDoc({
+      workspaceRoot,
+      selectorDoc: doc,
+      fetchUsers: async () => {
+        const res = await fetch(
+          `${baseUrl}/api/w/${encodeURIComponent(slug)}/users`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          },
+        );
+        const text = await res.text();
+        let json: { ok?: boolean; users?: unknown } | null;
+        try {
+          json = text ? (JSON.parse(text) as { ok?: boolean; users?: unknown }) : null;
+        } catch {
+          json = null;
+        }
+        return { ok: res.ok, json };
+      },
+    });
+  } catch {
+    /* best-effort cache; ignore */
+  }
+
+  return {
+    ok: true,
+    relativePath: CANONICAL_SELECTOR_RELATIVE.split(path.sep).join("/"),
+    absolutePath,
+  };
 }

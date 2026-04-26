@@ -180,7 +180,7 @@ mcpServer.registerTool(
   "get_ticket",
   {
     description:
-      "Get one ticket with comments (GET /api/w/{slug}/tickets/{id}). On success, merges this ticket into .warpdesk/tickets.ticket_selector.",
+      "Get one ticket with comments (GET /api/w/{slug}/tickets/{id}). On success, merges this ticket into .warpdesk/.ticket_selector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       ticketId: z.string().uuid().describe("Ticket UUID"),
@@ -207,7 +207,7 @@ mcpServer.registerTool(
   "get_ticket_by_number",
   {
     description:
-      "Get one ticket by integer ticket_number with comments (GET .../tickets/by-number/{n}). Same JSON shape as get_ticket. On success, merges into .warpdesk/tickets.ticket_selector.",
+      "Get one ticket by integer ticket_number with comments (GET .../tickets/by-number/{n}). Same JSON shape as get_ticket. On success, merges into .warpdesk/.ticket_selector.",
     inputSchema: {
       slug: z
         .string()
@@ -261,7 +261,7 @@ mcpServer.registerTool(
   "list_priority_active_tickets",
   {
     description:
-      "List priority work-queue tickets (GET .../tickets?queue=1&include_comments=1), ordered by priority_score. The server queue **excludes `needs_client`**. For other statuses or broader lists, use **`search_tickets`** or the app/CLI. Optional band=N (with queue) returns only tickets within N points of the top priority_score in that set. On success, merges ticket rows plus ticket/comment snapshots into .warpdesk/tickets.ticket_selector.",
+      "List priority work-queue tickets (GET .../tickets?queue=1&include_comments=1), ordered by priority_score. The server queue **excludes `needs_client`**. For other statuses or broader lists, use **`search_tickets`** or the app/CLI. Optional band=N (with queue) returns only tickets within N points of the top priority_score in that set. On success, merges ticket rows plus ticket/comment snapshots into .warpdesk/.ticket_selector.",
     inputSchema: {
       slug: z.string().describe("Workspace slug"),
       limit: z.number().int().min(1).max(100).optional(),
@@ -414,7 +414,7 @@ mcpServer.registerTool(
   "search_tickets",
   {
     description:
-      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q=). On success, merges hits into .warpdesk/tickets.ticket_selector.",
+      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q=). On success, merges hits into .warpdesk/.ticket_selector.",
     inputSchema: {
       slug: z.string(),
       q: z.string().min(1),

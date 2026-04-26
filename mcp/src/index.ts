@@ -414,7 +414,7 @@ mcpServer.registerTool(
   "search_tickets",
   {
     description:
-      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q=). On success, merges hits into .warpdesk/.ticket_selector.",
+      "Search tickets by title, #number, or id prefix (GET .../tickets/lookup?q= with include_comments=1). On success, merges hits plus per-ticket comment snapshots into .warpdesk/.ticket_selector.",
     inputSchema: {
       slug: z.string(),
       q: z.string().min(1),
@@ -423,6 +423,7 @@ mcpServer.registerTool(
   },
   async ({ slug, q, exclude }) => {
     const params = new URLSearchParams({ q });
+    params.set("include_comments", "1");
     if (exclude) {
       params.set("exclude", exclude);
     }

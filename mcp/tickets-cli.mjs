@@ -6,7 +6,7 @@
  *
  * Usage (cwd = workspace root, where warpdesk.config lives):
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs list [--limit N] [--status <status>] [--queue]
- *   (after a successful list, updates .warpdesk/.ticket_selector when tsx is available)
+ *   (list/lookup add include_comments=1; after a successful list, may update .warpdesk/.ticket_selector when tsx is available)
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs get <ticketUuid>
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs lookup <query>
  *   node vendor/warpdesk-client-kit/mcp/tickets-cli.mjs patch <ticketUuid> <path-to.json>
@@ -185,6 +185,7 @@ async function main() {
 
   if (cmd === "list") {
     const q = new URLSearchParams();
+    q.set("include_comments", "1");
     for (let i = 1; i < argv.length; i++) {
       if (argv[i] === "--limit" && argv[i + 1]) {
         q.set("limit", argv[++i]);
@@ -266,7 +267,7 @@ async function main() {
 
   if (cmd === "lookup" && argv[1]) {
     const query = argv[1];
-    const params = new URLSearchParams({ q: query });
+    const params = new URLSearchParams({ q: query, include_comments: "1" });
     const pathname = `/api/w/${encodeURIComponent(slug)}/tickets/lookup?${params.toString()}`;
     const { res, body } = await apiGet(workspaceRoot, cfg, pathname);
     console.log(

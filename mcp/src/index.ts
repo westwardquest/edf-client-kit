@@ -528,9 +528,7 @@ mcpServer.registerTool(
       } catch {
         payload = null;
       }
-      const extensionRefused =
-        res.ok && payload && typeof payload === "object" && payload.ok === false;
-      if (extensionRefused) {
+      if (res.ok && payload && typeof payload === "object" && payload.ok === false) {
         const code = typeof payload.code === "string" ? payload.code : "";
         const errMsg =
           typeof payload.error === "string" && payload.error.trim()

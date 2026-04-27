@@ -447,12 +447,12 @@ mcpServer.registerTool(
   "request_cursor_session",
   {
     description:
-      "Calls the WarpDesk Tools extension on localhost (POST /cursor-session/start|stop). If start returns dev_not_running, STOP: ask the user to start the WarpDesk dev clock (and ensure the git branch includes the ticket number), then only retry this tool — do not use Shell or other tools to write files. Requires the extension: dev clock must be running before start; stop ends Cursor clock (optionally resume dev).",
+      "Calls the WarpDesk Tools extension on localhost (POST /cursor-session/start|stop). If start returns dev_not_running, STOP: ask the user to start the WarpDesk dev clock (and ensure the git branch includes the ticket number), then only retry this tool — do not use Shell or other tools to write files. Requires the extension: dev clock must be running before start; stop ends Cursor clock and resumes dev by default.",
     inputSchema: {
       action: z
         .enum(["start", "stop", "stop_and_resume_dev"])
         .describe(
-          "start: end dev segment and begin Cursor segment. stop: end Cursor segment to idle. stop_and_resume_dev: end Cursor segment and immediately start a new dev segment.",
+          "start: end dev segment and begin Cursor segment. stop: end Cursor segment and resume dev by default. stop_and_resume_dev: explicit alias for stop+resume.",
         ),
     },
   },
@@ -510,7 +510,7 @@ mcpServer.registerTool(
       action === "stop_and_resume_dev"
         ? JSON.stringify({ resume_dev: true, source_hook_event: "mcp_tool" })
         : action === "stop"
-          ? JSON.stringify({ resume_dev: false, source_hook_event: "mcp_tool" })
+          ? JSON.stringify({ source_hook_event: "mcp_tool" })
           : JSON.stringify({ source_hook_event: "mcp_tool" });
     try {
       const res = await fetch(url, {

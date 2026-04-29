@@ -1,17 +1,13 @@
-# Copy to warpdesk.config (gitignored). Workspace repo folder name MUST equal WORKSPACE_SLUG.
-# Knowledge repo name is always ${WORKSPACE_SLUG}-knowledge-base (sibling repository).
+# Safe to commit as warpdesk.config.example. Copy to warpdesk.config (gitignored) and fill secrets.
+# Quickstart generates warpdesk.config + a workspace-specific warpdesk.config.example.
 
-WORKSPACE_NAME=My workspace
-WORKSPACE_SLUG=my-workspace
-DEV_APP_ORIGIN=https://warpdesk.vercel.app
-NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+WORKSPACE_NAME="Your workspace display name"
+WORKSPACE_SLUG=your-workspace-slug
+DEV_APP_ORIGIN=https://your-warpdesk-deployment.example
+NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-
-# Optional: set so git_repo_url can be built for bootstrap if KNOWLEDGE_REPO_HTTPS is omitted
 GITHUB_OWNER=
-
-# Full HTTPS URL of the knowledge-only GitHub repo (recommended for bootstrap_workspace / MCP)
-KNOWLEDGE_REPO_HTTPS=https://github.com/GITHUB_OWNER/my-workspace-knowledge-base
-
-# Must match Vercel env GITHUB_WEBHOOK_SECRET when creating the GitHub webhook on the *knowledge* repo
+KNOWLEDGE_REPO_HTTPS=
 GITHUB_WEBHOOK_SECRET=
+# Published kit (override if you fork — quickstart reads .gitmodules / WARPDESK_CLIENT_KIT_GIT_URL)
+WARPDESK_CLIENT_KIT_GIT_URL=
